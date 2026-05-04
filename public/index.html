@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Comando Social</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;800&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0a0a0a;
+      --surface: #111111;
+      --border: #222222;
+      --accent: #c8ff00;
+      --accent-dim: rgba(200, 255, 0, 0.08);
+      --text: #f0f0f0;
+      --muted: #666;
+      --error: #ff4d4d;
+      --success: #c8ff00;
+      --mono: 'Space Mono', monospace;
+      --sans: 'Syne', sans-serif;
+    }
+
+    html, body {
+      height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--sans);
+      overflow-x: hidden;
+    }
+
+    /* Grid background */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(200,255,0,0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(200,255,0,0.03) 1px, transparent 1px);
+      background-size: 48px 48px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .wrapper {
+      position: relative;
+      z-index: 1;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 40px 20px;
+      gap: 48px;
+    }
+
+    /* Header */
+    .header {
+      text-align: center;
+      animation: fadeDown 0.6s ease both;
+    }
+
+    .tag {
+      display: inline-block;
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--accent);
+      border: 1px solid var(--accent);
+      padding: 4px 12px;
+      margin-bottom: 20px;
+      opacity: 0.8;
+    }
+
+    h1 {
+      font-family: var(--sans);
+      font-size: clamp(32px, 6vw, 72px);
+      font-weight: 800;
+      line-height: 1;
+      letter-spacing: -0.03em;
+      color: var(--text);
+    }
+
+    h1 span {
+      color: var(--accent);
+    }
+
+    .subtitle {
+      margin-top: 12px;
+      font-family: var(--mono);
+      font-size: 12px;
+      color: var(--muted);
+      letter-spacing: 0.05em;
+    }
+
+    /* Main card */
+    .card {
+      width: 100%;
+      max-width: 680px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      padding: 32px;
+      animation: fadeUp 0.6s 0.1s ease both;
+    }
+
+    .input-label {
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 12px;
+      display: block;
+    }
+
+    .input-wrap {
+      position: relative;
+      display: flex;
+      align-items: stretch;
+      gap: 0;
+      border: 1px solid var(--border);
+      transition: border-color 0.2s;
+    }
+
+    .input-wrap:focus-within {
+      border-color: var(--accent);
+    }
+
+    .prompt-prefix {
+      font-family: var(--mono);
+      font-size: 14px;
+      color: var(--accent);
+      padding: 16px 12px 16px 16px;
+      background: var(--accent-dim);
+      user-select: none;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+    }
+
+    textarea {
+      flex: 1;
+      background: transparent;
+      border: none;
+      outline: none;
+      color: var(--text);
+      font-family: var(--mono);
+      font-size: 14px;
+      line-height: 1.6;
+      padding: 16px;
+      resize: none;
+      min-height: 100px;
+    }
+
+    textarea::placeholder {
+      color: #333;
+    }
+
+    .examples {
+      margin-top: 12px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .example {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--muted);
+      border: 1px solid var(--border);
+      padding: 4px 10px;
+      cursor: pointer;
+      transition: all 0.15s;
+      background: transparent;
+      white-space: nowrap;
+    }
+
+    .example:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+      background: var(--accent-dim);
+    }
+
+    .btn {
+      margin-top: 20px;
+      width: 100%;
+      background: var(--accent);
+      color: #000;
+      border: none;
+      font-family: var(--sans);
+      font-size: 14px;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      padding: 16px 24px;
+      cursor: pointer;
+      transition: all 0.15s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .btn:hover:not(:disabled) {
+      background: #d4ff1a;
+      transform: translateY(-1px);
+    }
+
+    .btn:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .btn .spinner {
+      width: 16px;
+      height: 16px;
+      border: 2px solid rgba(0,0,0,0.3);
+      border-top-color: #000;
+      border-radius: 50%;
+      animation: spin 0.6s linear infinite;
+      display: none;
+    }
+
+    .btn.loading .spinner { display: block; }
+    .btn.loading .btn-text { opacity: 0.7; }
+
+    /* Status area */
+    .status-box {
+      margin-top: 20px;
+      padding: 16px;
+      border: 1px solid var(--border);
+      font-family: var(--mono);
+      font-size: 12px;
+      line-height: 1.7;
+      display: none;
+      animation: fadeUp 0.3s ease both;
+    }
+
+    .status-box.visible { display: block; }
+    .status-box.success { border-color: var(--accent); background: var(--accent-dim); }
+    .status-box.error { border-color: var(--error); background: rgba(255,77,77,0.05); }
+
+    .status-label {
+      font-size: 10px;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      margin-bottom: 6px;
+    }
+
+    .status-box.success .status-label { color: var(--accent); }
+    .status-box.error .status-label { color: var(--error); }
+
+    .status-message { color: var(--text); }
+
+    .poll-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      margin-top: 10px;
+      font-size: 10px;
+      color: var(--muted);
+    }
+
+    .poll-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--accent);
+      animation: pulse 1.2s ease infinite;
+    }
+
+    /* History */
+    .history {
+      width: 100%;
+      max-width: 680px;
+      animation: fadeUp 0.6s 0.2s ease both;
+    }
+
+    .history-title {
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 12px;
+    }
+
+    .history-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .history-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 16px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      gap: 12px;
+      animation: fadeUp 0.3s ease both;
+    }
+
+    .history-cmd {
+      font-family: var(--mono);
+      font-size: 12px;
+      color: var(--text);
+      flex: 1;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .history-badge {
+      font-family: var(--mono);
+      font-size: 10px;
+      padding: 3px 8px;
+      border: 1px solid;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    .badge-novo { color: #aaa; border-color: #333; }
+    .badge-processando { color: #ffcc00; border-color: #ffcc0044; background: rgba(255,204,0,0.05); }
+    .badge-concluido { color: var(--accent); border-color: var(--accent); background: var(--accent-dim); }
+    .badge-erro { color: var(--error); border-color: var(--error); background: rgba(255,77,77,0.05); }
+
+    /* Animations */
+    @keyframes fadeDown {
+      from { opacity: 0; transform: translateY(-20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(16px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.4; transform: scale(0.8); }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrapper">
+
+    <div class="header">
+      <div class="tag">Comercial Gomes ◆ Social Media</div>
+      <h1>Comando<span>.</span></h1>
+      <p class="subtitle">// digite → IA interpreta → agenda automaticamente</p>
+    </div>
+
+    <div class="card">
+      <label class="input-label">Novo comando</label>
+      <div class="input-wrap">
+        <span class="prompt-prefix">›</span>
+        <textarea id="comandoInput" placeholder="ex: reels decor entrecasa amanhã&#10;ex: status vasos mabruk hoje&#10;ex: 4 reels essa semana" rows="3"></textarea>
+      </div>
+
+      <div class="examples">
+        <button class="example" onclick="fillExample('reels decor entrecasa amanhã')">reels decor entrecasa amanhã</button>
+        <button class="example" onclick="fillExample('status vasos mabruk hoje')">status vasos mabruk hoje</button>
+        <button class="example" onclick="fillExample('4 reels e 2 status essa semana')">4 reels e 2 status essa semana</button>
+        <button class="example" onclick="fillExample('carrossel promoção sábado')">carrossel promoção sábado</button>
+      </div>
+
+      <button class="btn" id="enviarBtn" onclick="enviarComando()">
+        <div class="spinner"></div>
+        <span class="btn-text">Enviar Comando</span>
+      </button>
+
+      <div class="status-box" id="statusBox">
+        <div class="status-label" id="statusLabel"></div>
+        <div class="status-message" id="statusMessage"></div>
+        <div class="poll-badge" id="pollBadge" style="display:none">
+          <div class="poll-dot"></div>
+          aguardando Make processar...
+        </div>
+      </div>
+    </div>
+
+    <div class="history" id="historySection" style="display:none">
+      <div class="history-title">// histórico da sessão</div>
+      <div class="history-list" id="historyList"></div>
+    </div>
+
+  </div>
+
+  <script>
+    const history = [];
+    let pollInterval = null;
+
+    function fillExample(text) {
+      document.getElementById('comandoInput').value = text;
+      document.getElementById('comandoInput').focus();
+    }
+
+    function showStatus(type, label, message, polling = false) {
+      const box = document.getElementById('statusBox');
+      const lbl = document.getElementById('statusLabel');
+      const msg = document.getElementById('statusMessage');
+      const poll = document.getElementById('pollBadge');
+
+      box.className = `status-box visible ${type}`;
+      lbl.textContent = label;
+      msg.textContent = message;
+      poll.style.display = polling ? 'flex' : 'none';
+    }
+
+    function addToHistory(comando, itemId) {
+      const item = { comando, itemId, status: 'Novo' };
+      history.unshift(item);
+      renderHistory();
+      startPolling(item);
+    }
+
+    function renderHistory() {
+      const section = document.getElementById('historySection');
+      const list = document.getElementById('historyList');
+      section.style.display = history.length ? 'block' : 'none';
+
+      list.innerHTML = history.slice(0, 8).map((item, i) => {
+        const badge = {
+          'Novo': 'badge-novo',
+          'Processando': 'badge-processando',
+          'Concluído': 'badge-concluido',
+          'Erro': 'badge-erro'
+        }[item.status] || 'badge-novo';
+        return `
+          <div class="history-item" style="animation-delay:${i * 0.05}s">
+            <span class="history-cmd">› ${escapeHtml(item.comando)}</span>
+            <span class="history-badge ${badge}">${item.status}</span>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function escapeHtml(str) {
+      return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    }
+
+    function startPolling(item) {
+      if (!item.itemId) return;
+      let attempts = 0;
+      const max = 24; // 2 min polling (5s × 24)
+
+      const interval = setInterval(async () => {
+        attempts++;
+        try {
+          const res = await fetch(`/api/status/${item.itemId}`);
+          const data = await res.json();
+          item.status = data.status || item.status;
+          renderHistory();
+
+          if (data.status === 'Concluído') {
+            clearInterval(interval);
+            showStatus('success', '✓ concluído', data.resultado || 'Agendado com sucesso pelo Make.');
+          } else if (data.status === 'Erro') {
+            clearInterval(interval);
+            showStatus('error', '✗ erro', data.resultado || 'Erro durante o processamento.');
+          }
+        } catch (e) {}
+
+        if (attempts >= max) clearInterval(interval);
+      }, 5000);
+    }
+
+    async function enviarComando() {
+      const input = document.getElementById('comandoInput');
+      const btn = document.getElementById('enviarBtn');
+      const comando = input.value.trim();
+
+      if (!comando) {
+        showStatus('error', '✗ vazio', 'Digite um comando antes de enviar.');
+        return;
+      }
+
+      btn.disabled = true;
+      btn.classList.add('loading');
+      showStatus('', '', '');
+      document.getElementById('statusBox').className = 'status-box';
+
+      try {
+        const res = await fetch('/api/comando', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ comando })
+        });
+
+        const data = await res.json();
+
+        if (!res.ok) {
+          showStatus('error', '✗ erro', data.error || 'Erro ao enviar comando.');
+        } else {
+          showStatus('success', '✓ enviado', 'Comando recebido! Aguardando o Make processar...', true);
+          addToHistory(comando, data.id);
+          input.value = '';
+        }
+      } catch (e) {
+        showStatus('error', '✗ erro de rede', 'Não foi possível conectar ao servidor.');
+      } finally {
+        btn.disabled = false;
+        btn.classList.remove('loading');
+      }
+    }
+
+    // Enviar com Ctrl+Enter
+    document.getElementById('comandoInput').addEventListener('keydown', e => {
+      if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+        e.preventDefault();
+        enviarComando();
+      }
+    });
+  </script>
+</body>
+</html>
