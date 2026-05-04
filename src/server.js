@@ -13,37 +13,37 @@ app.use(express.static(path.join(__dirname, '../public')));
 
 const NOTION_VERSION = '2022-06-28';
 
-function extractJson(text) {
-  const clean = text.replace(/```json|```/g, '').trim();
-  const start = clean.indexOf('{');
-  const end = clean.lastIndexOf('}');
-  if (start === -1 || end === -1) throw new Error('JSON não encontrado na resposta da IA.');
-  return JSON.parse(clean.slice(start, end + 1));
-}
-
-function getBrazilDate() {
+function hojeBrasil() {
   return new Date().toLocaleDateString('en-CA', {
     timeZone: 'America/Sao_Paulo'
   });
 }
 
-app.get('/health', (req, res) => {
-  res.json({ status: 'ok', timestamp: new Date().toISOString() });
-});
+function limparJson(texto) {
+  const clean = texto.replace(/```json|```/g, '').trim();
+  const start = clean.indexOf('{');
+  const end = clean.lastIndexOf('}');
 
-async function interpretarComando(comando) {
-  const openaiKey = process.env.OPENAI_API_KEY;
-
-  if (!openaiKey) {
-    throw new Error('OPENAI_API_KEY não configurada.');
+  if (start === -1 || end === -1) {
+    throw new Error('A IA não retornou JSON válido.');
   }
 
-  const hoje = getBrazilDate();
+  return JSON.parse(clean.slice(start, end + 1));
+}
+
+async function interpretarComando(comando) {
+  const hfToken = process.env.HF_TOKEN;
+
+  if (!hfToken) {
+    throw new Error('HF_TOKEN não configurado.');
+  }
+
+  const hoje = hojeBrasil();
 
   const prompt = `
 Você é uma IA especialista em planejamento de redes sociais para a Comercial Gomes.
 
-Interprete o comando abaixo e transforme em JSON válido para um cronograma de redes sociais.
+Interprete o comando abaixo e transforme em JSON válido para criar um item no cronograma.
 
 Data atual no Brasil: ${hoje}
 
@@ -61,12 +61,11 @@ Regras:
 - Caso contrário, plataforma = "Instagram"
 - Se mencionar amanhã, use a data de amanhã
 - Se mencionar hoje, use a data atual
-- Se mencionar sábado, use o próximo sábado
 - Se não houver data clara, use o próximo dia útil
-- O campo "dia" deve ser em português: Segunda, Terça, Quarta, Quinta, Sexta, Sábado ou Domingo
+- O campo dia deve ser: Segunda, Terça, Quarta, Quinta, Sexta, Sábado ou Domingo
 - O tema deve ser um título comercial limpo
 
-Responda SOMENTE JSON válido, sem markdown, neste formato:
+Responda SOMENTE JSON válido, sem markdown:
 
 {
   "tema": "",
@@ -78,52 +77,54 @@ Responda SOMENTE JSON válido, sem markdown, neste formato:
 }
 `;
 
-  const response = await fetch('https://api.openai.com/v1/responses', {
+  const response = await fetch('https://router.huggingface.co/v1/chat/completions', {
     method: 'POST',
     headers: {
-      Authorization: `Bearer ${openaiKey}`,
+      Authorization: `Bearer ${hfToken}`,
       'Content-Type': 'application/json'
     },
     body: JSON.stringify({
-      model: 'gpt-4o-mini',
-      input: prompt,
+      model: process.env.HF_MODEL || 'Qwen/Qwen2.5-7B-Instruct',
+      messages: [
+        {
+          role: 'user',
+          content: prompt
+        }
+      ],
       temperature: 0.2,
-      max_output_tokens: 500
+      max_tokens: 500
     })
   });
 
   const data = await response.json();
 
   if (!response.ok) {
-    console.error('Erro OpenAI:', data);
-    throw new Error(data.error?.message || 'Erro ao interpretar comando com IA.');
+    console.error('Erro Hugging Face:', data);
+    throw new Error(data.error?.message || data.error || 'Erro ao interpretar comando com Hugging Face.');
   }
 
-  const outputText =
-    data.output_text ||
-    data.output?.[0]?.content?.[0]?.text ||
-    '';
+  const texto = data.choices?.[0]?.message?.content;
 
-  if (!outputText) {
-    console.error('Resposta OpenAI sem texto:', data);
-    throw new Error('A IA não retornou texto.');
+  if (!texto) {
+    console.error('Resposta Hugging Face sem texto:', data);
+    throw new Error('A Hugging Face não retornou texto.');
   }
 
-  return extractJson(outputText);
+  return limparJson(texto);
 }
 
 async function criarNoCronograma(item) {
-  const token = process.env.NOTION_TOKEN;
+  const notionToken = process.env.NOTION_TOKEN;
   const databaseId = process.env.NOTION_DATABASE_ID;
 
-  if (!token || !databaseId) {
+  if (!notionToken || !databaseId) {
     throw new Error('NOTION_TOKEN ou NOTION_DATABASE_ID não configurados.');
   }
 
   const response = await fetch('https://api.notion.com/v1/pages', {
     method: 'POST',
     headers: {
-      Authorization: `Bearer ${token}`,
+      Authorization: `Bearer ${notionToken}`,
       'Notion-Version': NOTION_VERSION,
       'Content-Type': 'application/json'
     },
@@ -170,12 +171,16 @@ async function criarNoCronograma(item) {
   const data = await response.json();
 
   if (!response.ok) {
-    console.error('Erro Notion API:', data);
-    throw new Error(data.message || 'Erro ao criar item no cronograma.');
+    console.error('Erro Notion:', data);
+    throw new Error(data.message || 'Erro ao criar item no Notion.');
   }
 
   return data;
 }
+
+app.get('/health', (req, res) => {
+  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+});
 
 app.post('/api/comando', async (req, res) => {
   const { comando } = req.body;
@@ -195,7 +200,7 @@ app.post('/api/comando', async (req, res) => {
       item
     });
   } catch (err) {
-    console.error('Erro ao processar comando:', err);
+    console.error('Erro:', err);
     return res.status(500).json({
       error: err.message || 'Erro interno do servidor.'
     });
@@ -203,9 +208,9 @@ app.post('/api/comando', async (req, res) => {
 });
 
 app.get('/api/status/:id', async (req, res) => {
-  return res.json({
+  res.json({
     status: 'Concluído',
-    resultado: 'O conteúdo foi enviado diretamente para o cronograma.'
+    resultado: 'Conteúdo enviado diretamente para o cronograma.'
   });
 });
 
