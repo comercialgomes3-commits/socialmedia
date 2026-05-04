@@ -160,13 +160,12 @@ async function criarNoCronograma(item) {
           }
         },
         Plataforma: {
-          select: {
-            name: item.plataforma || 'Instagram'
-          }
-        }
-      }
-    })
-  });
+  multi_select: [
+    {
+      name: item.plataforma || 'Instagram'
+    }
+  ]
+}
 
   const data = await response.json();
 
