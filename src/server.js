@@ -176,7 +176,7 @@ app.get('/health', (req, res) => {
 });
 
 app.post('/api/comando', async (req, res) => {
-  const { comando } = req.body;
+  const { comando, tipoManual, plataformaManual } = req.body;
 
   if (!comando || !comando.trim()) {
     return res.status(400).json({ error: 'Comando não pode estar vazio.' });
@@ -184,6 +184,16 @@ app.post('/api/comando', async (req, res) => {
 
   try {
     const plano = await interpretarComando(comando.trim());
+
+    if (Array.isArray(plano.itens)) {
+  plano.itens = plano.itens.map((item) => ({
+    ...item,
+    tipo: Array.isArray(tipoManual) && tipoManual.length ? tipoManual[0] : item.tipo,
+    plataforma: Array.isArray(plataformaManual) && plataformaManual.length
+      ? plataformaManual
+      : item.plataforma
+  }));
+}
 
     const criados = [];
     for (const item of plano.itens) {
