@@ -16,36 +16,22 @@ function extrairJson(texto) {
   const clean = String(texto || '').replace(/```json|```/g, '').trim();
   const start = clean.indexOf('{');
   const end = clean.lastIndexOf('}');
-
-  if (start === -1 || end === -1) {
-    throw new Error('A IA não retornou JSON válido.');
-  }
-
+  if (start === -1 || end === -1) throw new Error('A IA não retornou JSON válido.');
   return JSON.parse(clean.slice(start, end + 1));
 }
 
 function normalizarPlataforma(plataforma, tipo) {
-  if (Array.isArray(plataforma)) return plataforma;
-
-  if (typeof plataforma === 'string' && plataforma.trim()) {
-    return [plataforma.trim()];
-  }
-
+  if (Array.isArray(plataforma) && plataforma.length) return plataforma;
+  if (typeof plataforma === 'string' && plataforma.trim()) return [plataforma.trim()];
   if (tipo === 'Status') return ['WhatsApp'];
-
   return ['Instagram'];
 }
 
 async function interpretarComando(comando) {
   const HF_TOKEN = process.env.HF_TOKEN || process.env.HF_API_KEY;
+  if (!HF_TOKEN) throw new Error('HF_TOKEN não configurado.');
 
-  if (!HF_TOKEN) {
-    throw new Error('HF_TOKEN não configurado.');
-  }
-
-  const hoje = new Date().toLocaleDateString('en-CA', {
-    timeZone: 'America/Sao_Paulo'
-  });
+  const hoje = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' });
 
   const prompt = `
 Você é uma IA especialista em planejamento de redes sociais para a Comercial Gomes.
@@ -56,31 +42,36 @@ Transforme este comando em JSON válido:
 "${comando}"
 
 Regras:
-- Se mencionar reels, tipo = "Reels"
-- Se mencionar carrossel, tipo = "Carrossel"
-- Se mencionar status, stories ou WhatsApp, tipo = "Status"
-- Se não mencionar tipo, tipo = "Reels"
-- Plataforma padrão = ["Instagram"]
-- Se tipo for Status, plataforma padrão = ["WhatsApp"]
-- Se mencionar TikTok, incluir "TikTok"
-- Se mencionar Instagram, incluir "Instagram"
-- Se mencionar WhatsApp, incluir "WhatsApp"
-- Se mencionar amanhã, use a data de amanhã
-- Se mencionar hoje, use a data atual
-- Se não houver data clara, use o próximo dia útil
-- O campo dia deve ser em português: Segunda, Terça, Quarta, Quinta, Sexta, Sábado ou Domingo
-- O tema deve ser um título comercial limpo
-- plataforma deve ser sempre array
+- Se o usuário pedir quantidade, crie vários itens dentro de "itens".
+- Exemplo: "4 reels semana que vem" = 4 itens do tipo Reels distribuídos na semana.
+- Distribuição padrão:
+  - Reels: Segunda, Terça, Quinta e Sexta.
+  - Status: Quarta e Sábado.
+  - Carrossel: Sábado.
+  - Post: Quarta.
+- Se mencionar "semana que vem", use datas da próxima semana.
+- Se mencionar "essa semana", use datas futuras desta semana.
+- Se mencionar "amanhã", use amanhã.
+- Se não houver data clara, use próximos dias disponíveis.
+- Plataforma deve ser sempre array.
+- Plataforma padrão para Reels, Carrossel e Post: ["Instagram"].
+- Plataforma padrão para Status: ["WhatsApp"].
+- Tema deve ser título comercial limpo.
+- Dia deve ser em português: Segunda, Terça, Quarta, Quinta, Sexta, Sábado ou Domingo.
 
-Responda SOMENTE JSON válido, sem markdown, neste formato:
+Responda SOMENTE JSON válido, sem markdown, nesse formato:
 
 {
-  "tema": "",
-  "tipo": "",
-  "plataforma": ["Instagram"],
-  "data": "YYYY-MM-DD",
-  "dia": "",
-  "resumo": ""
+  "resumo": "",
+  "itens": [
+    {
+      "tema": "",
+      "tipo": "Reels",
+      "plataforma": ["Instagram"],
+      "data": "YYYY-MM-DD",
+      "dia": "Segunda"
+    }
+  ]
 }
 `;
 
@@ -92,14 +83,9 @@ Responda SOMENTE JSON válido, sem markdown, neste formato:
     },
     body: JSON.stringify({
       model: process.env.HF_MODEL || 'Qwen/Qwen2.5-7B-Instruct',
-      messages: [
-        {
-          role: 'user',
-          content: prompt
-        }
-      ],
+      messages: [{ role: 'user', content: prompt }],
       temperature: 0.2,
-      max_tokens: 500
+      max_tokens: 1200
     })
   });
 
@@ -110,7 +96,7 @@ Responda SOMENTE JSON válido, sem markdown, neste formato:
     data = JSON.parse(raw);
   } catch {
     console.error('Resposta não JSON da Hugging Face:', raw);
-    throw new Error('Hugging Face retornou resposta inválida. Verifique token e permissão de Inference.');
+    throw new Error('Hugging Face retornou resposta inválida.');
   }
 
   if (!response.ok) {
@@ -119,18 +105,23 @@ Responda SOMENTE JSON válido, sem markdown, neste formato:
   }
 
   const texto = data.choices?.[0]?.message?.content;
+  if (!texto) throw new Error('A Hugging Face não retornou texto.');
 
-  if (!texto) {
-    console.error('Resposta Hugging Face sem texto:', data);
-    throw new Error('A Hugging Face não retornou texto.');
+  const parsed = extrairJson(texto);
+
+  if (!Array.isArray(parsed.itens)) {
+    throw new Error('A IA não retornou a lista "itens".');
   }
 
-  const item = extrairJson(texto);
+  parsed.itens = parsed.itens.map((item) => ({
+    tema: item.tema || 'Conteúdo sem título',
+    tipo: item.tipo || 'Reels',
+    plataforma: normalizarPlataforma(item.plataforma, item.tipo || 'Reels'),
+    data: item.data,
+    dia: item.dia || ''
+  }));
 
-  item.tipo = item.tipo || 'Reels';
-  item.plataforma = normalizarPlataforma(item.plataforma, item.tipo);
-
-  return item;
+  return parsed;
 }
 
 async function criarNoCronograma(item) {
@@ -152,37 +143,19 @@ async function criarNoCronograma(item) {
       parent: { database_id: databaseId },
       properties: {
         Tema: {
-          title: [
-            {
-              text: {
-                content: item.tema || 'Conteúdo sem título'
-              }
-            }
-          ]
+          title: [{ text: { content: item.tema || 'Conteúdo sem título' } }]
         },
         Date: {
-          date: {
-            start: item.data
-          }
+          date: { start: item.data }
         },
         Dia: {
-          rich_text: [
-            {
-              text: {
-                content: item.dia || ''
-              }
-            }
-          ]
+          rich_text: [{ text: { content: item.dia || '' } }]
         },
         Select: {
-          select: {
-            name: item.tipo || 'Reels'
-          }
+          select: { name: item.tipo || 'Reels' }
         },
         Plataforma: {
-          multi_select: normalizarPlataforma(item.plataforma, item.tipo).map((p) => ({
-            name: p
-          }))
+          multi_select: normalizarPlataforma(item.plataforma, item.tipo).map((p) => ({ name: p }))
         }
       }
     })
@@ -210,14 +183,25 @@ app.post('/api/comando', async (req, res) => {
   }
 
   try {
-    const item = await interpretarComando(comando.trim());
-    const notionPage = await criarNoCronograma(item);
+    const plano = await interpretarComando(comando.trim());
+
+    const criados = [];
+    for (const item of plano.itens) {
+      const notionPage = await criarNoCronograma(item);
+      criados.push({
+        id: notionPage.id,
+        tema: item.tema,
+        data: item.data,
+        tipo: item.tipo,
+        plataforma: item.plataforma
+      });
+    }
 
     return res.json({
       success: true,
-      id: notionPage.id,
-      message: item.resumo || 'Conteúdo criado no cronograma com sucesso.',
-      item
+      message: plano.resumo || `${criados.length} conteúdo(s) criado(s) no cronograma.`,
+      total: criados.length,
+      itens: criados
     });
   } catch (err) {
     console.error('Erro ao processar comando:', err);
