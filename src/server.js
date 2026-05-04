@@ -11,122 +11,76 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname, '../public')));
 
-const NOTION_VERSION = '2022-06-28';
+app.get('/health', (req, res) => {
+  res.json({ status: 'ok' });
+});
 
-function hojeBrasil() {
-  return new Date().toLocaleDateString('en-CA', {
-    timeZone: 'America/Sao_Paulo'
-  });
-}
 
-function limparJson(texto) {
-  const clean = texto.replace(/```json|```/g, '').trim();
-  const start = clean.indexOf('{');
-  const end = clean.lastIndexOf('}');
-
-  if (start === -1 || end === -1) {
-    throw new Error('A IA não retornou JSON válido.');
-  }
-
-  return JSON.parse(clean.slice(start, end + 1));
-}
-
+// 🔥 FUNÇÃO IA (Hugging Face)
 async function interpretarComando(comando) {
-  const hfToken = process.env.HF_TOKEN;
-
-  if (!hfToken) {
-    throw new Error('HF_TOKEN não configurado.');
-  }
-
-  const hoje = hojeBrasil();
+  const HF_TOKEN = process.env.HF_API_KEY;
 
   const prompt = `
-Você é uma IA especialista em planejamento de redes sociais para a Comercial Gomes.
+Transforme o comando abaixo em JSON estruturado.
 
-Interprete o comando abaixo e transforme em JSON válido para criar um item no cronograma.
+REGRAS:
+- tipo: Reels, Post, Carrossel ou Status
+- plataforma: array (Instagram, TikTok, WhatsApp)
+- data: YYYY-MM-DD
+- dia: Segunda, Terça, etc
 
-Data atual no Brasil: ${hoje}
+Exemplo:
+{
+ "tema": "Reels decor entrecasa",
+ "tipo": "Reels",
+ "plataforma": ["Instagram"],
+ "data": "2026-05-05",
+ "dia": "Segunda"
+}
 
-Comando:
+COMANDO:
 "${comando}"
 
-Regras:
-- Se mencionar reels, tipo = "Reels"
-- Se mencionar carrossel, tipo = "Carrossel"
-- Se mencionar status, stories ou whatsapp, tipo = "Status"
-- Se não mencionar tipo, use "Reels"
-- Se mencionar TikTok, plataforma = "TikTok"
-- Se mencionar WhatsApp, plataforma = "WhatsApp"
-- Se for Status e não mencionar plataforma, plataforma = "WhatsApp"
-- Caso contrário, plataforma = "Instagram"
-- Se mencionar amanhã, use a data de amanhã
-- Se mencionar hoje, use a data atual
-- Se não houver data clara, use o próximo dia útil
-- O campo dia deve ser: Segunda, Terça, Quarta, Quinta, Sexta, Sábado ou Domingo
-- O tema deve ser um título comercial limpo
-
-Responda SOMENTE JSON válido, sem markdown:
-
-{
-  "tema": "",
-  "data": "YYYY-MM-DD",
-  "dia": "",
-  "tipo": "",
-  "plataforma": "",
-  "resumo": ""
-}
+RESPONDA APENAS JSON.
 `;
 
-  const response = await fetch('https://router.huggingface.co/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${hfToken}`,
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({
-      model: process.env.HF_MODEL || 'Qwen/Qwen2.5-7B-Instruct',
-      messages: [
-        {
-          role: 'user',
-          content: prompt
-        }
-      ],
-      temperature: 0.2,
-      max_tokens: 500
-    })
-  });
+  const response = await fetch(
+    "https://api-inference.huggingface.co/models/google/flan-t5-large",
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${HF_TOKEN}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        inputs: prompt
+      })
+    }
+  );
 
   const data = await response.json();
 
-  if (!response.ok) {
-    console.error('Erro Hugging Face:', data);
-    throw new Error(data.error?.message || data.error || 'Erro ao interpretar comando com Hugging Face.');
+  let texto = data?.[0]?.generated_text || "";
+
+  try {
+    return JSON.parse(texto);
+  } catch {
+    throw new Error("IA retornou JSON inválido");
   }
-
-  const texto = data.choices?.[0]?.message?.content;
-
-  if (!texto) {
-    console.error('Resposta Hugging Face sem texto:', data);
-    throw new Error('A Hugging Face não retornou texto.');
-  }
-
-  return limparJson(texto);
 }
 
-async function criarNoCronograma(item) {
-  const notionToken = process.env.NOTION_TOKEN;
+
+// 🔥 CRIAR ITEM NO NOTION
+async function criarItemNotion(dados) {
+  const token = process.env.NOTION_TOKEN;
   const databaseId = process.env.NOTION_DATABASE_ID;
 
-  if (!notionToken || !databaseId) {
-    throw new Error('NOTION_TOKEN ou NOTION_DATABASE_ID não configurados.');
-  }
-
-  const response = await fetch('https://api.notion.com/v1/pages', {
-    method: 'POST',
+  return await fetch("https://api.notion.com/v1/pages", {
+    method: "POST",
     headers: {
-      Authorization: `Bearer ${notionToken}`,
-      'Notion-Version': NOTION_VERSION,
-      'Content-Type': 'application/json'
+      Authorization: `Bearer ${token}`,
+      "Notion-Version": "2022-06-28",
+      "Content-Type": "application/json"
     },
     body: JSON.stringify({
       parent: { database_id: databaseId },
@@ -135,88 +89,82 @@ async function criarNoCronograma(item) {
           title: [
             {
               text: {
-                content: item.tema || 'Conteúdo sem título'
+                content: dados.tema || "Sem título"
               }
             }
           ]
         },
         Date: {
           date: {
-            start: item.data
+            start: dados.data
           }
         },
         Dia: {
           rich_text: [
             {
               text: {
-                content: item.dia || ''
+                content: dados.dia
               }
             }
           ]
         },
         Select: {
           select: {
-            name: item.tipo || 'Reels'
+            name: dados.tipo
           }
         },
         Plataforma: {
-  multi_select: [
-    {
-      name: item.plataforma || 'Instagram'
-    }
-  ]
+          multi_select: dados.plataforma.map(p => ({ name: p }))
+        }
+      }
+    })
+  });
 }
 
-  const data = await response.json();
 
-  if (!response.ok) {
-    console.error('Erro Notion:', data);
-    throw new Error(data.message || 'Erro ao criar item no Notion.');
-  }
-
-  return data;
-}
-
-app.get('/health', (req, res) => {
-  res.json({ status: 'ok', timestamp: new Date().toISOString() });
-});
-
+// 🔥 ROTA PRINCIPAL
 app.post('/api/comando', async (req, res) => {
   const { comando } = req.body;
 
-  if (!comando || !comando.trim()) {
-    return res.status(400).json({ error: 'Comando não pode estar vazio.' });
+  if (!comando) {
+    return res.status(400).json({ error: 'Comando vazio' });
   }
 
   try {
-    const item = await interpretarComando(comando.trim());
-    const notionPage = await criarNoCronograma(item);
+    // 1. IA interpreta
+    const estruturado = await interpretarComando(comando);
 
-    return res.json({
+    // 2. Cria no Notion
+    const response = await criarItemNotion(estruturado);
+    const data = await response.json();
+
+    if (!response.ok) {
+      console.error(data);
+      return res.status(500).json({
+        error: data.message || 'Erro no Notion'
+      });
+    }
+
+    res.json({
       success: true,
-      id: notionPage.id,
-      message: item.resumo || 'Conteúdo criado no cronograma com sucesso.',
-      item
+      message: "Criado com sucesso 🚀",
+      data: estruturado
     });
+
   } catch (err) {
-    console.error('Erro:', err);
-    return res.status(500).json({
-      error: err.message || 'Erro interno do servidor.'
+    console.error(err);
+    res.status(500).json({
+      error: err.message || "Erro interno"
     });
   }
 });
 
-app.get('/api/status/:id', async (req, res) => {
-  res.json({
-    status: 'Concluído',
-    resultado: 'Conteúdo enviado diretamente para o cronograma.'
-  });
-});
 
+// fallback
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, '../public/index.html'));
 });
 
 app.listen(PORT, () => {
-  console.log(`✅ Servidor rodando na porta ${PORT}`);
+  console.log(`🚀 Rodando na porta ${PORT}`);
 });
