@@ -687,11 +687,65 @@ textarea::placeholder { color: #a8b3c7; }
         if (attempts >= 24) clearInterval(interval);
       }, 5000);
     }
+    async function prepararRemocao(comando) {
+  const res = await fetch('/api/preparar-remocao', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ comando })
+  });
 
-    async function enviarComando() {
-      const input = document.getElementById('comandoInput');
-      const btn = document.getElementById('enviarBtn');
-      const comando = input.value.trim();
+  const data = await res.json();
+
+  if (!data.success || !data.itens.length) {
+    showStatus('error', 'Nada encontrado', 'Não encontrei itens para remover.');
+    return;
+  }
+
+  const lista = data.itens
+    .map(item => `${item.dia} - ${item.tipo}: ${item.tema}`)
+    .join('\n');
+
+  const confirmar = confirm(
+    `Encontrei estes itens:\n\n${lista}\n\nTem certeza que deseja remover?`
+  );
+
+  if (!confirmar) {
+    showStatus('error', 'Cancelado', 'Remoção cancelada.');
+    return;
+  }
+
+  const resp = await fetch('/api/confirmar-remocao', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      ids: data.itens.map(item => item.id)
+    })
+  });
+
+  const json = await resp.json();
+
+  if (!resp.ok || !json.success) {
+    showStatus('error', 'Erro', json.error || 'Erro ao remover item.');
+    return;
+  }
+
+  showStatus('success', 'Removido', json.message || 'Item removido do Notion.');
+  addToHistory(comando);
+}
+
+   async function enviarComando() {
+  const input = document.getElementById('comandoInput');
+  const btn = document.getElementById('enviarBtn');
+
+  const comando = input.value.trim(); // 👈 TEM QUE VIR PRIMEIRO
+
+  // 👇 DEPOIS vem a verificação
+  if (comando.toLowerCase().includes('remover') || comando.toLowerCase().includes('apagar')) {
+    await prepararRemocao(comando);
+    input.value = '';
+    return;
+  }
+
 
       if (!comando) {
         showStatus('error', '✗ vazio', 'Digite um comando antes de enviar.');
