@@ -262,7 +262,55 @@ dataInicio.setDate(hoje.getDate() + 1);
 // ─────────────────────────────────────────────
 // IA por texto — Hugging Face
 // ─────────────────────────────────────────────
+function detectarTarefaRepetida(comando) {
+  const cmd = String(comando || '').toLowerCase();
 
+  if (
+    !cmd.includes('todos os dias') ||
+    !(cmd.includes('esta semana') || cmd.includes('essa semana'))
+  ) {
+    return null;
+  }
+
+  const match =
+    comando.match(/tema\s+"([^"]+)"/i) ||
+    comando.match(/tarefa\s+(.+?)\s+para/i);
+
+  const tema = match ? match[1].trim() : 'Gravação de status';
+
+  const tipo = tema.toLowerCase().includes('status') ? 'Status' : 'Reels';
+  const plataforma = tipo === 'Status' ? ['WhatsApp'] : ['Instagram'];
+
+  const hoje = hojeBrasil();
+  hoje.setHours(0, 0, 0, 0);
+
+  const diaSemana = hoje.getDay();
+
+  const dataInicio = new Date(hoje);
+  dataInicio.setDate(hoje.getDate() + 1);
+
+  const dataFim = new Date(hoje);
+  dataFim.setDate(hoje.getDate() + (6 - diaSemana));
+
+  const itens = [];
+
+  for (let d = new Date(dataInicio); d <= dataFim; d.setDate(d.getDate() + 1)) {
+    const data = formatarDataBrasil(d);
+
+    itens.push({
+      tema,
+      tipo,
+      plataforma,
+      data,
+      dia: getDiaSemana(data)
+    });
+  }
+
+  return {
+    resumo: `Tarefa "${tema}" repetida todos os dias desta semana a partir de amanhã.`,
+    itens
+  };
+}
 async function interpretarComando(comando, conteudosExistentes = []) {
   const HF_TOKEN = process.env.HF_TOKEN || process.env.HF_API_KEY;
 
