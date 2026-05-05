@@ -7,6 +7,32 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;800&display=swap" rel="stylesheet">
   <style>
+    .options-group {
+  margin-top: 16px;
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.options-group p {
+  width: 100%;
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--muted);
+  margin-bottom: 6px;
+  text-transform: uppercase;
+}
+
+.options-group label {
+  border: 1px solid var(--border);
+  padding: 6px 10px;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.options-group input {
+  margin-right: 4px;
+}
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     :root {
@@ -372,6 +398,28 @@
         <button class="example" onclick="fillExample('4 reels e 2 status essa semana')">4 reels e 2 status essa semana</button>
         <button class="example" onclick="fillExample('carrossel promoção sábado')">carrossel promoção sábado</button>
       </div>
+      <div class="examples">
+  ...
+</div>
+
+<!-- 👇 COLE AQUI -->
+<div class="options-group">
+  <p>Tipo</p>
+  <label><input type="checkbox" name="tipo" value="Reels"> Reels</label>
+  <label><input type="checkbox" name="tipo" value="Carrossel"> Carrossel</label>
+  <label><input type="checkbox" name="tipo" value="Post"> Post</label>
+  <label><input type="checkbox" name="tipo" value="Status"> Status</label>
+</div>
+
+<div class="options-group">
+  <p>Plataforma</p>
+  <label><input type="checkbox" name="plataforma" value="Instagram"> Instagram</label>
+  <label><input type="checkbox" name="plataforma" value="TikTok"> TikTok</label>
+  <label><input type="checkbox" name="plataforma" value="WhatsApp"> WhatsApp</label>
+</div>
+
+<!-- botão continua normal -->
+<button class="btn" id="enviarBtn" onclick="enviarComando()">
 
       <button class="btn" id="enviarBtn" onclick="enviarComando()">
         <div class="spinner"></div>
@@ -493,7 +541,17 @@
         const res = await fetch('/api/comando', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ comando })
+          const tipoManual = Array.from(document.querySelectorAll('input[name="tipo"]:checked'))
+  .map(i => i.value);
+
+const plataformaManual = Array.from(document.querySelectorAll('input[name="plataforma"]:checked'))
+  .map(i => i.value);
+
+body: JSON.stringify({
+  comando,
+  tipoManual,
+  plataformaManual
+})
         });
 
         const data = await res.json();
