@@ -538,21 +538,22 @@
       document.getElementById('statusBox').className = 'status-box';
 
       try {
-        const res = await fetch('/api/comando', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          const tipoManual = Array.from(document.querySelectorAll('input[name="tipo"]:checked'))
+        const tipoManual = Array.from(document.querySelectorAll('input[name="tipo"]:checked'))
   .map(i => i.value);
 
 const plataformaManual = Array.from(document.querySelectorAll('input[name="plataforma"]:checked'))
   .map(i => i.value);
 
-body: JSON.stringify({
-  comando,
-  tipoManual,
-  plataformaManual
-})
-        });
+const res = await fetch('/api/comando', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    comando,
+    tipoManual,
+    plataformaManual
+  })
+});
 
         const data = await res.json();
 
