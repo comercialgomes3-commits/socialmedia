@@ -579,7 +579,8 @@ app.post('/api/comando', async (req, res) => {
     const janela = calcularJanelaDatas(comando.trim());
     const existentes = await buscarCronogramaExistente(janela.inicio, janela.fim);
 
-    const plano = await interpretarComando(comando.trim(), existentes);
+ const planoManual = detectarTarefaRepetida(comando.trim());
+const plano = planoManual || await interpretarComando(comando.trim(), existentes);
 
     let itens = plano.itens.map((item) => ({
       ...item,
