@@ -509,7 +509,7 @@
       }, 5000);
     }
 
-    async function enviarComando() {
+   async function enviarComando() {
   const input = document.getElementById('comandoInput');
   const btn = document.getElementById('enviarBtn');
   const comando = input.value.trim();
@@ -527,8 +527,6 @@
 
   btn.disabled = true;
   btn.classList.add('loading');
-  showStatus('', '', '');
-  document.getElementById('statusBox').className = 'status-box';
 
   try {
     const res = await fetch('/api/comando', {
@@ -540,6 +538,23 @@
         plataformaManual
       })
     });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      showStatus('error', '✗ erro', data.error || 'Erro ao enviar comando.');
+    } else {
+      showStatus('success', '✓ enviado', data.message || 'Comando enviado com sucesso.');
+      addToHistory(comando, data.id);
+      input.value = '';
+    }
+  } catch (e) {
+    showStatus('error', '✗ erro de rede', 'Não foi possível conectar ao servidor.');
+  } finally {
+    btn.disabled = false;
+    btn.classList.remove('loading');
+  }
+}
 
     const data = await res.json();
 
