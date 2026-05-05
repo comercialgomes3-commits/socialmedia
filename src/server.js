@@ -1,4 +1,5 @@
 require('dotenv').config();
+
 const express = require('express');
 const cors = require('cors');
 const fetch = require('node-fetch');
@@ -9,57 +10,266 @@ const PORT = process.env.PORT || 3000;
 const NOTION_VERSION = '2022-06-28';
 
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '25mb' }));
 app.use(express.static(path.join(__dirname, '../public')));
+
+// ─────────────────────────────────────────────
+// Helpers gerais
+// ─────────────────────────────────────────────
 
 function extrairJson(texto) {
   const clean = String(texto || '').replace(/```json|```/g, '').trim();
   const start = clean.indexOf('{');
   const end = clean.lastIndexOf('}');
-  if (start === -1 || end === -1) throw new Error('A IA não retornou JSON válido.');
+
+  if (start === -1 || end === -1) {
+    throw new Error('A IA não retornou JSON válido.');
+  }
+
   return JSON.parse(clean.slice(start, end + 1));
 }
 
 function normalizarPlataforma(plataforma, tipo) {
   if (Array.isArray(plataforma) && plataforma.length) return plataforma;
   if (typeof plataforma === 'string' && plataforma.trim()) return [plataforma.trim()];
+
   if (tipo === 'Status') return ['WhatsApp'];
   return ['Instagram'];
 }
 
-async function interpretarComando(comando) {
-  const HF_TOKEN = process.env.HF_TOKEN || process.env.HF_API_KEY;
-  if (!HF_TOKEN) throw new Error('HF_TOKEN não configurado.');
+function getDiaSemana(dataStr) {
+  const nomes = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
+  const d = new Date(dataStr + 'T00:00:00');
+  return nomes[d.getDay()];
+}
 
-  const hoje = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' });
+function normalizarTipo(tipo) {
+  const t = String(tipo || '').toLowerCase();
+
+  if (t.includes('status') || t.includes('story')) return 'Status';
+  if (t.includes('carrossel')) return 'Carrossel';
+  if (t.includes('post')) return 'Post';
+  if (t.includes('reel')) return 'Reels';
+
+  return 'Reels';
+}
+
+function normalizarItem(item) {
+  const tipo = normalizarTipo(item.tipo);
+
+  return {
+    tema: item.tema || item.titulo || item.nome || 'Conteúdo sem título',
+    tipo,
+    plataforma: normalizarPlataforma(item.plataforma, tipo),
+    data: item.data,
+    dia: item.dia || (item.data ? getDiaSemana(item.data) : '')
+  };
+}
+
+// ─────────────────────────────────────────────
+// Notion
+// ─────────────────────────────────────────────
+
+async function buscarCronogramaExistente(dataInicio, dataFim) {
+  const notionToken = process.env.NOTION_TOKEN;
+  const databaseId = process.env.NOTION_DATABASE_ID;
+
+  if (!notionToken || !databaseId) {
+    throw new Error('NOTION_TOKEN ou NOTION_DATABASE_ID não configurados.');
+  }
+
+  const response = await fetch(`https://api.notion.com/v1/databases/${databaseId}/query`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${notionToken}`,
+      'Notion-Version': NOTION_VERSION,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      filter: {
+        and: [
+          { property: 'Date', date: { on_or_after: dataInicio } },
+          { property: 'Date', date: { on_or_before: dataFim } }
+        ]
+      },
+      page_size: 100
+    })
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    console.error('Erro ao buscar cronograma:', data);
+    throw new Error(data.message || 'Erro ao buscar cronograma existente.');
+  }
+
+  return (data.results || []).map((page) => {
+    const props = page.properties || {};
+
+    return {
+      id: page.id,
+      tema: props.Tema?.title?.[0]?.plain_text || '',
+      data: props.Date?.date?.start || '',
+      dia: props.Dia?.rich_text?.[0]?.plain_text || '',
+      tipo: props.Select?.select?.name || '',
+      plataforma: (props.Plataforma?.multi_select || []).map((p) => p.name)
+    };
+  });
+}
+
+function filtrarDuplicatas(itensPlanejados, existentes) {
+  return itensPlanejados.filter((novo) => {
+    const duplicado = existentes.some(
+      (ex) => ex.data === novo.data && ex.tipo === novo.tipo
+    );
+
+    if (duplicado) {
+      console.warn(`Duplicata bloqueada: ${novo.tipo} em ${novo.data} - ${novo.tema}`);
+    }
+
+    return !duplicado;
+  });
+}
+
+async function criarNoCronograma(item) {
+  const notionToken = process.env.NOTION_TOKEN;
+  const databaseId = process.env.NOTION_DATABASE_ID;
+
+  if (!notionToken || !databaseId) {
+    throw new Error('NOTION_TOKEN ou NOTION_DATABASE_ID não configurados.');
+  }
+
+  const itemFinal = normalizarItem(item);
+
+  const response = await fetch('https://api.notion.com/v1/pages', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${notionToken}`,
+      'Notion-Version': NOTION_VERSION,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      parent: { database_id: databaseId },
+      properties: {
+        Tema: {
+          title: [{ text: { content: itemFinal.tema } }]
+        },
+        Date: {
+          date: { start: itemFinal.data }
+        },
+        Dia: {
+          rich_text: [{ text: { content: itemFinal.dia || '' } }]
+        },
+        Select: {
+          select: { name: itemFinal.tipo }
+        },
+        Plataforma: {
+          multi_select: itemFinal.plataforma.map((p) => ({ name: p }))
+        }
+      }
+    })
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    console.error('Erro Notion:', data);
+    throw new Error(data.message || 'Erro ao criar item no Notion.');
+  }
+
+  return data;
+}
+
+// ─────────────────────────────────────────────
+// Datas
+// ─────────────────────────────────────────────
+
+function calcularJanelaDatas(comando) {
+  const hoje = new Date();
+  hoje.setHours(0, 0, 0, 0);
+
+  const diaSemana = hoje.getDay();
+  const cmd = String(comando || '').toLowerCase();
+
+  let dataInicio;
+  let dataFim;
+
+  if (cmd.includes('semana que vem') || cmd.includes('próxima semana')) {
+    const diasAteProxSeg = (8 - diaSemana) % 7 || 7;
+
+    dataInicio = new Date(hoje);
+    dataInicio.setDate(hoje.getDate() + diasAteProxSeg);
+
+    dataFim = new Date(dataInicio);
+    dataFim.setDate(dataInicio.getDate() + 6);
+  } else if (cmd.includes('essa semana') || cmd.includes('esta semana')) {
+    dataInicio = new Date(hoje);
+
+    dataFim = new Date(hoje);
+    dataFim.setDate(hoje.getDate() + (6 - diaSemana));
+  } else if (cmd.includes('esse mês') || cmd.includes('este mês')) {
+    dataInicio = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate());
+    dataFim = new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0);
+  } else {
+    dataInicio = new Date(hoje);
+    dataFim = new Date(hoje);
+    dataFim.setDate(hoje.getDate() + 30);
+  }
+
+  return {
+    inicio: dataInicio.toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' }),
+    fim: dataFim.toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
+  };
+}
+
+// ─────────────────────────────────────────────
+// IA por texto — Hugging Face
+// ─────────────────────────────────────────────
+
+async function interpretarComando(comando, conteudosExistentes = []) {
+  const HF_TOKEN = process.env.HF_TOKEN || process.env.HF_API_KEY;
+
+  if (!HF_TOKEN) {
+    throw new Error('HF_TOKEN não configurado.');
+  }
+
+  const hoje = new Date().toLocaleDateString('en-CA', {
+    timeZone: 'America/Sao_Paulo'
+  });
+
+  const existentesStr = conteudosExistentes.length
+    ? JSON.stringify(conteudosExistentes, null, 2)
+    : 'Nenhum conteúdo encontrado no período.';
 
   const prompt = `
-Você é uma IA especialista em planejamento de redes sociais para a Comercial Gomes.
+Você é Gabi, uma IA especialista em planejamento de redes sociais para a Comercial Gomes.
 
 Data atual no Brasil: ${hoje}
 
-Transforme este comando em JSON válido:
+Conteúdos já existentes no cronograma, não duplique data + tipo:
+${existentesStr}
+
+Comando do usuário:
 "${comando}"
 
 Regras:
 - Se o usuário pedir quantidade, crie vários itens dentro de "itens".
-- Exemplo: "4 reels semana que vem" = 4 itens do tipo Reels distribuídos na semana.
-- Distribuição padrão:
-  - Reels: Segunda, Terça, Quinta e Sexta.
-  - Status: Quarta e Sábado.
-  - Carrossel: Sábado.
-  - Post: Quarta.
-- Se mencionar "semana que vem", use datas da próxima semana.
-- Se mencionar "essa semana", use datas futuras desta semana.
-- Se mencionar "amanhã", use amanhã.
-- Se não houver data clara, use próximos dias disponíveis.
-- Plataforma deve ser sempre array.
-- Plataforma padrão para Reels, Carrossel e Post: ["Instagram"].
-- Plataforma padrão para Status: ["WhatsApp"].
-- Tema deve ser título comercial limpo.
-- Dia deve ser em português: Segunda, Terça, Quarta, Quinta, Sexta, Sábado ou Domingo.
+- Se pedir "semana que vem", use a próxima semana.
+- Se pedir "essa semana", use datas futuras desta semana.
+- Se pedir "amanhã", use amanhã.
+- Nunca crie dois Reels no mesmo dia.
+- Pode ter Reels + Status no mesmo dia.
+- Status vai para ["WhatsApp"].
+- Reels, Post e Carrossel vão para ["Instagram"].
+- Reels preferenciais: Segunda, Terça, Quinta e Sexta.
+- Status preferenciais: Quarta e Sábado.
+- Carrossel preferencial: Sábado.
+- Post preferencial: Quarta.
+- Tema deve ser um título comercial limpo.
+- data deve estar em YYYY-MM-DD.
+- dia deve estar em português.
 
-Responda SOMENTE JSON válido, sem markdown, nesse formato:
+Responda SOMENTE JSON válido, sem markdown, neste formato:
 
 {
   "resumo": "",
@@ -84,8 +294,8 @@ Responda SOMENTE JSON válido, sem markdown, nesse formato:
     body: JSON.stringify({
       model: process.env.HF_MODEL || 'Qwen/Qwen2.5-7B-Instruct',
       messages: [{ role: 'user', content: prompt }],
-      temperature: 0.2,
-      max_tokens: 1200
+      temperature: 0.25,
+      max_tokens: 1500
     })
   });
 
@@ -105,7 +315,10 @@ Responda SOMENTE JSON válido, sem markdown, nesse formato:
   }
 
   const texto = data.choices?.[0]?.message?.content;
-  if (!texto) throw new Error('A Hugging Face não retornou texto.');
+
+  if (!texto) {
+    throw new Error('A Hugging Face não retornou texto.');
+  }
 
   const parsed = extrairJson(texto);
 
@@ -113,68 +326,156 @@ Responda SOMENTE JSON válido, sem markdown, nesse formato:
     throw new Error('A IA não retornou a lista "itens".');
   }
 
-  parsed.itens = parsed.itens.map((item) => ({
-    tema: item.tema || 'Conteúdo sem título',
-    tipo: item.tipo || 'Reels',
-    plataforma: normalizarPlataforma(item.plataforma, item.tipo || 'Reels'),
-    data: item.data,
-    dia: item.dia || ''
-  }));
+  parsed.itens = parsed.itens.map(normalizarItem);
 
   return parsed;
 }
 
-async function criarNoCronograma(item) {
-  const notionToken = process.env.NOTION_TOKEN;
-  const databaseId = process.env.NOTION_DATABASE_ID;
+// ─────────────────────────────────────────────
+// IA visual — Gemini para print/screenshot
+// ─────────────────────────────────────────────
 
-  if (!notionToken || !databaseId) {
-    throw new Error('NOTION_TOKEN ou NOTION_DATABASE_ID não configurados.');
+function limparImagemBase64(imagemBase64) {
+  const texto = String(imagemBase64 || '');
+
+  const match = texto.match(/^data:(image\/[a-zA-Z0-9.+-]+);base64,(.+)$/);
+
+  if (match) {
+    return {
+      mimeType: match[1],
+      base64: match[2]
+    };
   }
 
-  const response = await fetch('https://api.notion.com/v1/pages', {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${notionToken}`,
-      'Notion-Version': NOTION_VERSION,
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({
-      parent: { database_id: databaseId },
-      properties: {
-        Tema: {
-          title: [{ text: { content: item.tema || 'Conteúdo sem título' } }]
-        },
-        Date: {
-          date: { start: item.data }
-        },
-        Dia: {
-          rich_text: [{ text: { content: item.dia || '' } }]
-        },
-        Select: {
-          select: { name: item.tipo || 'Reels' }
-        },
-        Plataforma: {
-          multi_select: normalizarPlataforma(item.plataforma, item.tipo).map((p) => ({ name: p }))
-        }
-      }
-    })
+  return {
+    mimeType: 'image/png',
+    base64: texto
+  };
+}
+
+async function interpretarPrintComGemini(imagemBase64, instrucoes = '') {
+  const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+
+  if (!GEMINI_API_KEY) {
+    throw new Error('GEMINI_API_KEY não configurado.');
+  }
+
+  const hoje = new Date().toLocaleDateString('en-CA', {
+    timeZone: 'America/Sao_Paulo'
   });
+
+  const { mimeType, base64 } = limparImagemBase64(imagemBase64);
+
+  const prompt = `
+Você é uma IA que lê prints/screenshot de listas de conteúdos de social media.
+
+Data atual no Brasil: ${hoje}
+
+Tarefa:
+- Leia a imagem enviada.
+- Identifique os conteúdos/vídeos da lista.
+- Transforme cada conteúdo em um item para agendar no Notion.
+- Se aparecer data no print, use a data do print.
+- Se não aparecer data, distribua nos próximos dias úteis a partir da data atual.
+- Se aparecer formato/plataforma, respeite.
+- Se não aparecer tipo, use "Reels".
+- Se não aparecer plataforma, use:
+  - Reels, Post e Carrossel: ["Instagram"]
+  - Status: ["WhatsApp"]
+- Não invente conteúdo que não esteja no print, exceto quando precisar organizar título e data.
+- O campo tema deve ser curto, limpo e comercial.
+- O campo data deve ser YYYY-MM-DD.
+- O campo dia deve ser em português.
+
+Instruções adicionais do usuário:
+${instrucoes || 'Nenhuma.'}
+
+Responda SOMENTE JSON válido, sem markdown, neste formato:
+
+{
+  "resumo": "Resumo do que foi identificado no print",
+  "itens": [
+    {
+      "tema": "Título do conteúdo",
+      "tipo": "Reels",
+      "plataforma": ["Instagram"],
+      "data": "YYYY-MM-DD",
+      "dia": "Segunda"
+    }
+  ]
+}
+`;
+
+  const model = process.env.GEMINI_MODEL || 'gemini-2.0-flash';
+
+  const response = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GEMINI_API_KEY}`,
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        contents: [
+          {
+            role: 'user',
+            parts: [
+              { text: prompt },
+              {
+                inline_data: {
+                  mime_type: mimeType,
+                  data: base64
+                }
+              }
+            ]
+          }
+        ],
+        generationConfig: {
+          temperature: 0.2,
+          maxOutputTokens: 2000
+        }
+      })
+    }
+  );
 
   const data = await response.json();
 
   if (!response.ok) {
-    console.error('Erro Notion:', data);
-    throw new Error(data.message || 'Erro ao criar item no Notion.');
+    console.error('Erro Gemini:', data);
+    throw new Error(data.error?.message || 'Erro ao interpretar print com Gemini.');
   }
 
-  return data;
+  const texto = data.candidates?.[0]?.content?.parts
+    ?.map((p) => p.text || '')
+    .join('\n');
+
+  if (!texto) {
+    throw new Error('O Gemini não retornou texto.');
+  }
+
+  const parsed = extrairJson(texto);
+
+  if (!Array.isArray(parsed.itens)) {
+    throw new Error('A IA visual não retornou a lista "itens".');
+  }
+
+  parsed.itens = parsed.itens.map(normalizarItem);
+
+  return parsed;
 }
 
+// ─────────────────────────────────────────────
+// Rotas
+// ─────────────────────────────────────────────
+
 app.get('/health', (req, res) => {
-  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+  res.json({
+    status: 'ok',
+    timestamp: new Date().toISOString()
+  });
 });
 
+// Texto normal
 app.post('/api/comando', async (req, res) => {
   const { comando, tipoManual, plataformaManual } = req.body;
 
@@ -183,40 +484,252 @@ app.post('/api/comando', async (req, res) => {
   }
 
   try {
-    const plano = await interpretarComando(comando.trim());
+    const janela = calcularJanelaDatas(comando.trim());
+    const existentes = await buscarCronogramaExistente(janela.inicio, janela.fim);
 
-    if (Array.isArray(plano.itens)) {
-  plano.itens = plano.itens.map((item) => ({
-    ...item,
-    tipo: Array.isArray(tipoManual) && tipoManual.length ? tipoManual[0] : item.tipo,
-    plataforma: Array.isArray(plataformaManual) && plataformaManual.length
-      ? plataformaManual
-      : item.plataforma
-  }));
-}
+    const plano = await interpretarComando(comando.trim(), existentes);
+
+    let itens = plano.itens.map((item) => ({
+      ...item,
+      tipo: Array.isArray(tipoManual) && tipoManual.length ? tipoManual[0] : item.tipo,
+      plataforma:
+        Array.isArray(plataformaManual) && plataformaManual.length
+          ? plataformaManual
+          : item.plataforma
+    }));
+
+    itens = itens.map(normalizarItem);
+
+    const filtrados = filtrarDuplicatas(itens, existentes);
+    const bloqueados = itens.length - filtrados.length;
 
     const criados = [];
-    for (const item of plano.itens) {
-      const notionPage = await criarNoCronograma(item);
-      criados.push({
-        id: notionPage.id,
-        tema: item.tema,
-        data: item.data,
-        tipo: item.tipo,
-        plataforma: item.plataforma
-      });
+    const erros = [];
+
+    for (const item of filtrados) {
+      try {
+        const page = await criarNoCronograma(item);
+
+        criados.push({
+          id: page.id,
+          tema: item.tema,
+          data: item.data,
+          dia: item.dia,
+          tipo: item.tipo,
+          plataforma: item.plataforma
+        });
+      } catch (err) {
+        erros.push({
+          tema: item.tema,
+          erro: err.message
+        });
+      }
     }
 
     return res.json({
       success: true,
       message: plano.resumo || `${criados.length} conteúdo(s) criado(s) no cronograma.`,
       total: criados.length,
+      bloqueados,
+      erros,
       itens: criados
     });
   } catch (err) {
     console.error('Erro ao processar comando:', err);
     return res.status(500).json({
       error: err.message || 'Erro interno do servidor.'
+    });
+  }
+});
+
+// Print/screenshot: interpreta imagem e já agenda
+app.post('/api/interpretar-print', async (req, res) => {
+  const {
+    imagemBase64,
+    imageBase64,
+    print,
+    instrucoes,
+    tipoManual,
+    plataformaManual,
+    autoAgendar = true
+  } = req.body;
+
+  const imagem = imagemBase64 || imageBase64 || print;
+
+  if (!imagem) {
+    return res.status(400).json({
+      error: 'Envie a imagem em base64 no campo imagemBase64.'
+    });
+  }
+
+  try {
+    const plano = await interpretarPrintComGemini(imagem, instrucoes);
+
+    let itens = plano.itens.map((item) => ({
+      ...item,
+      tipo: Array.isArray(tipoManual) && tipoManual.length ? tipoManual[0] : item.tipo,
+      plataforma:
+        Array.isArray(plataformaManual) && plataformaManual.length
+          ? plataformaManual
+          : item.plataforma
+    }));
+
+    itens = itens.map(normalizarItem);
+
+    if (!autoAgendar) {
+      return res.json({
+        success: true,
+        agendado: false,
+        message: plano.resumo || 'Print interpretado com sucesso.',
+        total: itens.length,
+        itens
+      });
+    }
+
+    const datas = itens.map((i) => i.data).filter(Boolean).sort();
+
+    if (!datas.length) {
+      return res.status(400).json({
+        error: 'A IA não conseguiu identificar datas válidas para os itens.',
+        itens
+      });
+    }
+
+    const existentes = await buscarCronogramaExistente(datas[0], datas[datas.length - 1]);
+    const filtrados = filtrarDuplicatas(itens, existentes);
+    const bloqueados = itens.length - filtrados.length;
+
+    const criados = [];
+    const erros = [];
+
+    for (const item of filtrados) {
+      try {
+        const page = await criarNoCronograma(item);
+
+        criados.push({
+          id: page.id,
+          tema: item.tema,
+          data: item.data,
+          dia: item.dia,
+          tipo: item.tipo,
+          plataforma: item.plataforma
+        });
+      } catch (err) {
+        erros.push({
+          tema: item.tema,
+          erro: err.message
+        });
+      }
+    }
+
+    return res.json({
+      success: true,
+      agendado: true,
+      message: `${criados.length} conteúdo(s) agendado(s) via print.${bloqueados ? ` ${bloqueados} duplicata(s) ignorada(s).` : ''}`,
+      resumo: plano.resumo || '',
+      total: criados.length,
+      bloqueados,
+      erros,
+      interpretados: itens,
+      itens: criados
+    });
+  } catch (err) {
+    console.error('Erro em /api/interpretar-print:', err);
+    return res.status(500).json({
+      error: err.message || 'Erro interno ao interpretar print.'
+    });
+  }
+});
+
+// Agendamento direto: recebe JSON pronto e cria no Notion
+app.post('/api/agendar-direto', async (req, res) => {
+  const itensRecebidos = req.body._itens_diretos || req.body.itens;
+
+  if (!Array.isArray(itensRecebidos) || itensRecebidos.length === 0) {
+    return res.status(400).json({ error: 'Nenhum item para agendar.' });
+  }
+
+  try {
+    const itens = itensRecebidos.map(normalizarItem);
+
+    for (const item of itens) {
+      if (!item.tema || !item.tipo || !item.data) {
+        return res.status(400).json({
+          error: `Item inválido. Cada item precisa ter tema, tipo e data. Recebido: ${JSON.stringify(item)}`
+        });
+      }
+    }
+
+    const datas = itens.map((i) => i.data).sort();
+    const existentes = await buscarCronogramaExistente(datas[0], datas[datas.length - 1]);
+
+    const filtrados = filtrarDuplicatas(itens, existentes);
+    const bloqueados = itens.length - filtrados.length;
+
+    const criados = [];
+    const erros = [];
+
+    for (const item of filtrados) {
+      try {
+        const page = await criarNoCronograma(item);
+
+        criados.push({
+          id: page.id,
+          tema: item.tema,
+          data: item.data,
+          dia: item.dia,
+          tipo: item.tipo,
+          plataforma: item.plataforma
+        });
+      } catch (err) {
+        erros.push({
+          tema: item.tema,
+          erro: err.message
+        });
+      }
+    }
+
+    return res.json({
+      success: true,
+      message: `${criados.length} conteúdo(s) agendado(s).${bloqueados ? ` ${bloqueados} duplicata(s) ignorada(s).` : ''}`,
+      total: criados.length,
+      bloqueados,
+      erros,
+      itens: criados
+    });
+  } catch (err) {
+    console.error('Erro em /api/agendar-direto:', err);
+    return res.status(500).json({
+      error: err.message || 'Erro interno do servidor.'
+    });
+  }
+});
+
+// Consulta cronograma existente
+app.get('/api/cronograma', async (req, res) => {
+  const { inicio, fim } = req.query;
+
+  const hoje = new Date().toLocaleDateString('en-CA', {
+    timeZone: 'America/Sao_Paulo'
+  });
+
+  const fimPadrao = new Date();
+  fimPadrao.setDate(fimPadrao.getDate() + 30);
+
+  try {
+    const itens = await buscarCronogramaExistente(
+      inicio || hoje,
+      fim || fimPadrao.toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
+    );
+
+    return res.json({
+      success: true,
+      total: itens.length,
+      itens
+    });
+  } catch (err) {
+    return res.status(500).json({
+      error: err.message || 'Erro ao consultar cronograma.'
     });
   }
 });
@@ -233,5 +746,5 @@ app.get('*', (req, res) => {
 });
 
 app.listen(PORT, () => {
-  console.log(`✅ Servidor rodando na porta ${PORT}`);
+  console.log(`Servidor rodando na porta ${PORT}`);
 });
