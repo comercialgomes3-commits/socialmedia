@@ -223,6 +223,37 @@ function formatarDataBrasil(data) {
     timeZone: 'America/Sao_Paulo'
   });
 }
+function proximaDataPorDia(nomeDia) {
+  const mapa = {
+    domingo: 0,
+    segunda: 1,
+    terça: 2,
+    terca: 2,
+    quarta: 3,
+    quinta: 4,
+    sexta: 5,
+    sábado: 6,
+    sabado: 6
+  };
+
+  const alvo = mapa[String(nomeDia || '').toLowerCase()];
+  if (alvo === undefined) return null;
+
+  const hoje = hojeBrasil();
+  hoje.setHours(0, 0, 0, 0);
+
+  const atual = hoje.getDay();
+  let diasParaAdicionar = (alvo - atual + 7) % 7;
+
+  if (diasParaAdicionar === 0) {
+    diasParaAdicionar = 7;
+  }
+
+  const novaData = new Date(hoje);
+  novaData.setDate(hoje.getDate() + diasParaAdicionar);
+
+  return formatarDataBrasil(novaData);
+}
 
 function calcularJanelaDatas(comando) {
   const hoje = hojeBrasil();
