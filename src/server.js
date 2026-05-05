@@ -271,7 +271,7 @@ function calcularJanelaDatas(comando) {
     const diasAteProxSeg = (8 - diaSemana) % 7 || 7;
 
     dataInicio = new Date(hoje);
-    dataInicio.setDate(hojeData.getDate()() + diasAteProxSeg);
+    dataInicio.setDate(hojeData.getDate() + diasAteProxSeg);
 
     dataFim = new Date(dataInicio);
     dataFim.setDate(dataInicio.getDate() + 6);
@@ -279,14 +279,14 @@ function calcularJanelaDatas(comando) {
     dataInicio = new Date(hoje);
 
     dataFim = new Date(hoje);
-    dataFim.setDate(hojeData.getDate()() + (6 - diaSemana));
+    dataFim.setDate(hojeData.getDate() + (6 - diaSemana));
   } else if (cmd.includes('esse mês') || cmd.includes('este mês')) {
-    dataInicio = new Date(hoje.getFullYear(), hoje.getMonth(), hojeData.getDate()());
+    dataInicio = new Date(hoje.getFullYear(), hoje.getMonth(), hojeData.getDate());
     dataFim = new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0);
   } else {
     dataInicio = new Date(hoje);
     dataFim = new Date(hoje);
-    dataFim.setDate(hojeData.getDate()() + 30);
+    dataFim.setDate(hojeData.getDate() + 30);
   }
 
   return {
