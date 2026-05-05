@@ -70,6 +70,29 @@ function normalizarItem(item) {
 // Notion
 // ─────────────────────────────────────────────
 
+async function deletarItemNotion(pageId) {
+  const notionToken = process.env.NOTION_TOKEN;
+
+  const response = await fetch(`https://api.notion.com/v1/pages/${pageId}`, {
+    method: 'PATCH',
+    headers: {
+      Authorization: `Bearer ${notionToken}`,
+      'Notion-Version': NOTION_VERSION,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      archived: true
+    })
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.message || 'Erro ao remover item do Notion.');
+  }
+
+  return data;
+}
 async function buscarCronogramaExistente(dataInicio, dataFim) {
   const notionToken = process.env.NOTION_TOKEN;
   const databaseId = process.env.NOTION_DATABASE_ID;
@@ -788,7 +811,72 @@ app.get('/api/cronograma', async (req, res) => {
     });
   }
 });
+app.post('/api/preparar-remocao', async (req, res) => {
+  const { comando } = req.body;
 
+  try {
+    const hoje = new Date().toLocaleDateString('en-CA', {
+      timeZone: 'America/Sao_Paulo'
+    });
+
+    const fim = new Date();
+    fim.setDate(fim.getDate() + 14);
+
+    const existentes = await buscarCronogramaExistente(
+      hoje,
+      fim.toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
+    );
+
+    const cmd = String(comando || '').toLowerCase();
+
+    const tipo =
+      cmd.includes('reels') ? 'Reels' :
+      cmd.includes('status') ? 'Status' :
+      cmd.includes('post') ? 'Post' :
+      cmd.includes('carrossel') ? 'Carrossel' :
+      '';
+
+    const dias = ['segunda', 'terça', 'quarta', 'quinta', 'sexta', 'sábado', 'domingo'];
+    const diaBusca = dias.find(d => cmd.includes(d));
+
+    const encontrados = existentes.filter(item => {
+      const bateTipo = tipo ? item.tipo === tipo : true;
+      const bateDia = diaBusca ? item.dia.toLowerCase().includes(diaBusca) : true;
+      return bateTipo && bateDia;
+    });
+
+    return res.json({
+      success: true,
+      total: encontrados.length,
+      itens: encontrados
+    });
+
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/confirmar-remocao', async (req, res) => {
+  const { ids } = req.body;
+
+  if (!Array.isArray(ids) || !ids.length) {
+    return res.status(400).json({ error: 'Nenhum item selecionado para remover.' });
+  }
+
+  try {
+    for (const id of ids) {
+      await deletarItemNotion(id);
+    }
+
+    return res.json({
+      success: true,
+      message: `${ids.length} item(ns) removido(s) do cronograma.`
+    });
+
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+});
 app.get('/api/status/:id', async (req, res) => {
   res.json({
     status: 'Concluído',
