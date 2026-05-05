@@ -240,7 +240,8 @@ function calcularJanelaDatas(comando) {
     dataFim = new Date(dataInicio);
     dataFim.setDate(dataInicio.getDate() + 6);
   } else if (cmd.includes('essa semana') || cmd.includes('esta semana')) {
-    dataInicio = new Date(hoje);
+   dataInicio = new Date(hoje);
+dataInicio.setDate(hoje.getDate() + 1);
 
     dataFim = new Date(hoje);
     dataFim.setDate(hoje.getDate() + (6 - diaSemana));
