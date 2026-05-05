@@ -208,15 +208,17 @@ async function criarNoCronograma(item) {
 // ─────────────────────────────────────────────
 
 function calcularJanelaDatas(comando) {
- function hojeBrasil() {
-  const agora = new Date();
+function calcularJanelaDatas(comando) {
 
-  const brasil = new Date(
-    agora.toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' })
-  );
+  function hojeBrasil() {
+    const agora = new Date();
 
-  return brasil;
-}
+    return new Date(
+      agora.toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' })
+    );
+  }
+
+  const hoje = hojeBrasil(); // ✅ AGORA EXISTE
   hoje.setHours(0, 0, 0, 0);
 
   const diaSemana = hoje.getDay();
@@ -233,18 +235,58 @@ function calcularJanelaDatas(comando) {
 
     dataFim = new Date(dataInicio);
     dataFim.setDate(dataInicio.getDate() + 6);
+
   } else if (cmd.includes('essa semana') || cmd.includes('esta semana')) {
+
     dataInicio = new Date(hoje);
 
     dataFim = new Date(hoje);
     dataFim.setDate(hoje.getDate() + (6 - diaSemana));
+
   } else if (cmd.includes('esse mês') || cmd.includes('este mês')) {
-    dataInicio = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate());
+
+    dataInicio = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
+    dataFim = new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0);
+
+  } else {
+
+    dataInicio = new Date(hoje);
+    dataFim = new Date(hoje);
+    dataFim.setDate(hoje.getDate() + 30);
+  }
+
+  return {
+    inicio: dataInicio.toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' }),
+    fim: dataFim.toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
+  };
+}
+
+  const diaSemana = hoje.getDay();
+  const cmd = String(comando || '').toLowerCase();
+
+  let dataInicio;
+  let dataFim;
+
+  if (cmd.includes('semana que vem') || cmd.includes('próxima semana')) {
+    const diasAteProxSeg = (8 - diaSemana) % 7 || 7;
+
+    dataInicio = new Date(hoje);
+    dataInicio.setDate(hojeData.getDate()() + diasAteProxSeg);
+
+    dataFim = new Date(dataInicio);
+    dataFim.setDate(dataInicio.getDate() + 6);
+  } else if (cmd.includes('essa semana') || cmd.includes('esta semana')) {
+    dataInicio = new Date(hoje);
+
+    dataFim = new Date(hoje);
+    dataFim.setDate(hojeData.getDate()() + (6 - diaSemana));
+  } else if (cmd.includes('esse mês') || cmd.includes('este mês')) {
+    dataInicio = new Date(hoje.getFullYear(), hoje.getMonth(), hojeData.getDate()());
     dataFim = new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0);
   } else {
     dataInicio = new Date(hoje);
     dataFim = new Date(hoje);
-    dataFim.setDate(hoje.getDate() + 30);
+    dataFim.setDate(hojeData.getDate()() + 30);
   }
 
   return {
