@@ -740,7 +740,20 @@ textarea::placeholder { color: #a8b3c7; }
   const comando = input.value.trim(); // 👈 TEM QUE VIR PRIMEIRO
 
   // 👇 DEPOIS vem a verificação
-  if (comando.toLowerCase().includes('remover') || comando.toLowerCase().includes('apagar')) {
+ const cmd = comando.toLowerCase();
+
+if (
+  cmd.includes('remover') ||
+  cmd.includes('remova') ||
+  cmd.includes('apagar') ||
+  cmd.includes('apague') ||
+  cmd.includes('deletar') ||
+  cmd.includes('excluir')
+) {
+  await prepararRemocao(comando);
+  input.value = '';
+  return;
+}
     await prepararRemocao(comando);
     input.value = '';
     return;
