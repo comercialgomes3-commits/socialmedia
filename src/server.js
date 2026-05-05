@@ -407,6 +407,19 @@ Tarefa:
 - O campo tema deve ser curto, limpo e comercial.
 - O campo data deve ser YYYY-MM-DD.
 - O campo dia deve ser em português.
+- No campo "tema", adicione prefixo conforme o tipo:
+  - Reels e Status devem começar com "Vídeo: "
+  - Post e Carrossel devem começar com "Estático: "
+- Exemplos:
+  - REELS Tur da Gomes.mov → "Vídeo: Tour da Gomes"
+  - STATUS chegada de produtos.png → "Vídeo: Chegada de produtos"
+  - POST mesa posta.png → "Estático: Mesa posta"
+  - CARROSSEL decoração.png → "Estático: Decoração"
+  - Corrija erros simples de português nos títulos antes de montar o tema final.
+- Remova extensões como .mov, .mp4, .png, .jpg.
+- Remova prefixos como REELS, STATUS, POST e CARROSSEL antes de aplicar "Vídeo:" ou "Estático:".
+  
+  
 
 Instruções adicionais do usuário:
 ${instrucoes || 'Nenhuma.'}
