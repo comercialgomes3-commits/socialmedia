@@ -431,9 +431,10 @@ Responda SOMENTE JSON válido, sem markdown, neste formato:
           }
         ],
         generationConfig: {
-          temperature: 0.2,
-          maxOutputTokens: 2000
-        }
+  temperature: 0,
+  maxOutputTokens: 2000,
+  responseMimeType: 'application/json'
+}
       })
     }
   );
