@@ -208,7 +208,15 @@ async function criarNoCronograma(item) {
 // ─────────────────────────────────────────────
 
 function calcularJanelaDatas(comando) {
-  const hoje = new Date();
+ function hojeBrasil() {
+  const agora = new Date();
+
+  const brasil = new Date(
+    agora.toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' })
+  );
+
+  return brasil;
+}
   hoje.setHours(0, 0, 0, 0);
 
   const diaSemana = hoje.getDay();
