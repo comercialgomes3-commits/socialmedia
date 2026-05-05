@@ -827,7 +827,7 @@ async function enviarPrint() {
     printBtn.disabled = true;
     printText.textContent = 'Cole o print com Ctrl+V ou clique aqui para selecionar';
 
-    addToHistory('Print do editor agendado', data.itens && data.itens[0] ? data.itens[0].id : null);
+    addToHistory('Print do Drive com o Conteúdo agendado', data.itens && data.itens[0] ? data.itens[0].id : null);
 
   } catch (e) {
     showStatus('error', '✗ erro de rede', 'Não foi possível conectar ao servidor.');
