@@ -2,504 +2,303 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Comando Social</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     :root {
-      --bg: #0a0a0a;
-      --surface: #111111;
-      --border: #222222;
-      --accent: #c8ff00;
-      --accent-dim: rgba(200, 255, 0, 0.08);
-      --text: #f0f0f0;
-      --muted: #666;
-      --error: #ff4d4d;
-      --mono: 'Space Mono', monospace;
-      --sans: 'Syne', sans-serif;
+      --bg: #eff8ef;
+      --shell: rgba(255,255,255,.78);
+      --card: #ffffff;
+      --soft: #f7f8ff;
+      --line: #eef0f7;
+      --text: #1d2556;
+      --muted: #8b93ad;
+      --primary: #5a67f2;
+      --primary-dark: #4651dc;
+      --purple: #a463f2;
+      --pink: #ff6b9a;
+      --green: #2ed99c;
+      --mint: #ddf9e8;
+      --yellow: #ffbf3f;
+      --red: #ff5570;
+      --shadow: 0 18px 45px rgba(57,65,124,.10);
+      --radius-xl: 24px;
+      --radius-lg: 18px;
+      --radius-md: 14px;
+      --font: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
     }
 
-    html, body {
-      height: 100%;
-      background: var(--bg);
-      color: var(--text);
-      font-family: var(--sans);
-      overflow-x: hidden;
+    html, body { min-height: 100%; background: linear-gradient(135deg,#eef7d9 0%,#e8fbf5 48%,#f5f1ff 100%); color: var(--text); font-family: var(--font); }
+    body { padding: 18px; overflow-x: hidden; }
+
+    .app {
+      width: min(1180px, 100%);
+      min-height: calc(100vh - 36px);
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: 190px 1fr;
+      background: var(--shell);
+      border: 1px solid rgba(255,255,255,.75);
+      border-radius: 26px;
+      overflow: hidden;
+      box-shadow: 0 30px 80px rgba(104, 117, 171, .20);
+      backdrop-filter: blur(16px);
     }
 
-    body::before {
-      content: '';
-      position: fixed;
-      inset: 0;
-      background-image:
-        linear-gradient(rgba(200,255,0,0.03) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(200,255,0,0.03) 1px, transparent 1px);
-      background-size: 48px 48px;
-      pointer-events: none;
-      z-index: 0;
-    }
-
-    .wrapper {
-      position: relative;
-      z-index: 1;
-      min-height: 100vh;
+    .sidebar {
+      background: rgba(255,255,255,.74);
+      padding: 28px 18px;
+      border-right: 1px solid var(--line);
       display: flex;
       flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      padding: 40px 20px;
-      gap: 48px;
+      gap: 24px;
     }
 
-    .header { text-align: center; animation: fadeDown 0.6s ease both; }
+    .brand { display: flex; align-items: center; gap: 12px; font-weight: 800; font-size: 18px; }
+    .brand-icon { width: 34px; height: 34px; border-radius: 9px; background: var(--primary); color: #fff; display: grid; place-items: center; box-shadow: 0 10px 22px rgba(90,103,242,.26); }
 
-    .tag {
-      display: inline-block;
-      font-family: var(--mono);
-      font-size: 10px;
-      letter-spacing: 0.2em;
-      text-transform: uppercase;
-      color: var(--accent);
-      border: 1px solid var(--accent);
-      padding: 4px 12px;
-      margin-bottom: 20px;
-      opacity: 0.8;
-    }
+    .nav { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; }
+    .nav-item { border: 0; background: transparent; color: var(--muted); display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 10px; cursor: pointer; font-weight: 600; text-align: left; }
+    .nav-item.active { background: var(--primary); color: #fff; box-shadow: 0 12px 25px rgba(90,103,242,.25); }
+    .nav-icon { width: 18px; text-align: center; }
 
-    h1 {
-      font-family: var(--sans);
-      font-size: clamp(32px, 6vw, 72px);
-      font-weight: 800;
-      line-height: 1;
-      letter-spacing: -0.03em;
-      color: var(--text);
-    }
+    .side-card { margin-top: auto; background: linear-gradient(160deg,#6071ff,#5d65e9); color: #fff; border-radius: 18px; padding: 18px 14px; text-align: center; overflow: hidden; position: relative; }
+    .side-card::after { content: ''; position: absolute; width: 130px; height: 130px; border-radius: 50%; background: rgba(255,255,255,.10); right: -50px; bottom: -60px; }
+    .side-card strong { display: block; margin: 10px 0 4px; }
+    .side-card p { font-size: 11px; opacity: .8; line-height: 1.45; }
 
-    h1 span { color: var(--accent); }
+    .main { padding: 26px 28px 30px; }
+    .topbar { display: flex; align-items: center; justify-content: space-between; gap: 18px; margin-bottom: 26px; }
+    .title-block h1 { font-size: 30px; letter-spacing: -.03em; margin-bottom: 5px; }
+    .title-block p { color: var(--muted); font-size: 13px; }
+    .search { flex: 1; max-width: 360px; background: #fff; border: 1px solid var(--line); border-radius: 14px; padding: 13px 16px; color: var(--muted); box-shadow: 0 10px 25px rgba(95,105,155,.06); }
+    .user-pill { display: flex; align-items: center; gap: 10px; background: #fff; padding: 8px 12px; border-radius: 16px; border: 1px solid var(--line); }
+    .avatar { width: 34px; height: 34px; border-radius: 50%; background: linear-gradient(135deg,#ffca63,#ff6b9a); display: grid; place-items: center; color: #fff; font-weight: 800; }
+    .user-pill span { display: block; font-size: 12px; color: var(--muted); }
+    .user-pill strong { font-size: 13px; }
 
-    .subtitle {
-      margin-top: 12px;
-      font-family: var(--mono);
-      font-size: 12px;
-      color: var(--muted);
-      letter-spacing: 0.05em;
-    }
+    .grid { display: grid; grid-template-columns: 1.25fr .85fr; gap: 22px; }
+    .card { background: var(--card); border: 1px solid rgba(239,242,250,.9); border-radius: var(--radius-xl); padding: 20px; box-shadow: var(--shadow); }
+    .card h2 { font-size: 16px; margin-bottom: 6px; }
+    .card-sub { color: var(--muted); font-size: 12px; margin-bottom: 18px; }
 
-    .card {
-      width: 100%;
-      max-width: 680px;
-      background: var(--surface);
-      border: 1px solid var(--border);
-      padding: 32px;
-      animation: fadeUp 0.6s 0.1s ease both;
-    }
+    .stats { display: grid; grid-template-columns: repeat(4,1fr); gap: 14px; }
+    .stat { border-radius: 15px; padding: 16px; min-height: 106px; display: flex; flex-direction: column; justify-content: space-between; }
+    .stat:nth-child(1){ background:#ffe2ea; } .stat:nth-child(2){ background:#fff1d9; } .stat:nth-child(3){ background:#ddf9e8; } .stat:nth-child(4){ background:#efe2ff; }
+    .stat-icon { width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; color: #fff; font-size: 15px; }
+    .stat:nth-child(1) .stat-icon{ background:var(--pink); } .stat:nth-child(2) .stat-icon{ background:#ff8b73; } .stat:nth-child(3) .stat-icon{ background:var(--green); } .stat:nth-child(4) .stat-icon{ background:var(--purple); }
+    .stat strong { font-size: 22px; }
+    .stat span { color: #7c86a8; font-size: 12px; font-weight: 600; }
 
-    .input-label {
-      font-family: var(--mono);
-      font-size: 10px;
-      letter-spacing: 0.15em;
-      text-transform: uppercase;
-      color: var(--muted);
-      margin-bottom: 12px;
-      display: block;
-    }
+    .command-card { margin-top: 22px; }
+    .command-box { display: grid; grid-template-columns: 1fr 270px; gap: 18px; align-items: stretch; }
+    .input-panel { background: var(--soft); border: 1px solid var(--line); border-radius: var(--radius-lg); padding: 16px; }
+    .input-label { color: var(--muted); font-size: 12px; font-weight: 700; margin-bottom: 10px; text-transform: uppercase; letter-spacing: .06em; }
+    textarea { width: 100%; min-height: 125px; border: 0; resize: vertical; outline: none; background: #fff; color: var(--text); border-radius: 16px; padding: 16px; font-family: var(--font); font-size: 14px; line-height: 1.55; box-shadow: inset 0 0 0 1px var(--line); }
+    textarea::placeholder { color: #a4abc0; }
 
-    .input-wrap {
-      display: flex;
-      align-items: stretch;
-      border: 1px solid var(--border);
-      transition: border-color 0.2s;
-    }
+    .examples { display: flex; flex-wrap: wrap; gap: 9px; margin-top: 12px; }
+    .example { border: 0; background: #fff; color: #7e86a2; box-shadow: inset 0 0 0 1px var(--line); border-radius: 999px; padding: 8px 12px; font-size: 12px; font-weight: 700; cursor: pointer; transition: .15s; }
+    .example:hover { color: var(--primary); box-shadow: inset 0 0 0 1px rgba(90,103,242,.45); transform: translateY(-1px); }
 
-    .input-wrap:focus-within { border-color: var(--accent); }
+    .side-options { display: flex; flex-direction: column; gap: 14px; }
+    .option-box { background: #fff; border: 1px solid var(--line); border-radius: 16px; padding: 14px; }
+    .option-box p { color: var(--muted); font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: .06em; margin-bottom: 10px; }
+    .opts { display: flex; flex-wrap: wrap; gap: 8px; }
+    .opts label { cursor: pointer; user-select: none; }
+    .opts input { display: none; }
+    .opts span { display: inline-flex; align-items: center; border-radius: 999px; padding: 7px 10px; border: 1px solid var(--line); color: #8b93ad; font-size: 12px; font-weight: 700; }
+    .opts label:has(input:checked) span, .opts label.checked span { border-color: var(--primary); background: rgba(90,103,242,.10); color: var(--primary); }
 
-    .prompt-prefix {
-      font-family: var(--mono);
-      font-size: 14px;
-      color: var(--accent);
-      padding: 16px 12px 16px 16px;
-      background: var(--accent-dim);
-      user-select: none;
-      flex-shrink: 0;
-      display: flex;
-      align-items: center;
-    }
-
-    textarea {
-      flex: 1;
-      background: transparent;
-      border: none;
-      outline: none;
-      color: var(--text);
-      font-family: var(--mono);
-      font-size: 14px;
-      line-height: 1.6;
-      padding: 16px;
-      resize: none;
-      min-height: 90px;
-    }
-
-    textarea::placeholder { color: #333; }
-
-    .examples {
-      margin-top: 12px;
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-    }
-
-    .example {
-      font-family: var(--mono);
-      font-size: 11px;
-      color: var(--muted);
-      border: 1px solid var(--border);
-      padding: 4px 10px;
-      cursor: pointer;
-      transition: all 0.15s;
-      background: transparent;
-      white-space: nowrap;
-    }
-
-    .example:hover {
-      border-color: var(--accent);
-      color: var(--accent);
-      background: var(--accent-dim);
-    }
-
-    /* Options group (tipo / plataforma) */
-    .options-group {
-      margin-top: 20px;
-    }
-
-    .options-group p {
-      font-family: var(--mono);
-      font-size: 10px;
-      letter-spacing: 0.15em;
-      text-transform: uppercase;
-      color: var(--muted);
-      margin-bottom: 10px;
-    }
-
-    .options-group .opts {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-    }
-
-    .options-group label {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      border: 1px solid var(--border);
-      padding: 6px 12px;
-      font-family: var(--mono);
-      font-size: 11px;
-      color: var(--muted);
-      cursor: pointer;
-      transition: all 0.15s;
-      user-select: none;
-    }
-
-    .options-group label:hover {
-      border-color: var(--accent);
-      color: var(--accent);
-    }
-
-    .options-group input[type="checkbox"] {
-      display: none;
-    }
-
-    .options-group input[type="checkbox"]:checked + span {
-      color: var(--accent);
-    }
-
-    .options-group label:has(input:checked) {
-      border-color: var(--accent);
-      color: var(--accent);
-      background: var(--accent-dim);
-    }
-
-    /* Fallback para browsers sem :has() */
-    .options-group label.checked {
-      border-color: var(--accent);
-      color: var(--accent);
-      background: var(--accent-dim);
-    }
-
-    .btn {
-      margin-top: 24px;
-      width: 100%;
-      background: var(--accent);
-      color: #000;
-      border: none;
-      font-family: var(--sans);
-      font-size: 14px;
-      font-weight: 600;
-      letter-spacing: 0.1em;
-      text-transform: uppercase;
-      padding: 16px 24px;
-      cursor: pointer;
-      transition: all 0.15s;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 10px;
-    }
-
-    .btn:hover:not(:disabled) {
-      background: #d4ff1a;
-      transform: translateY(-1px);
-    }
-
-    .btn:disabled {
-      opacity: 0.4;
-      cursor: not-allowed;
-      transform: none;
-    }
-
-    .btn .spinner {
-      width: 16px;
-      height: 16px;
-      border: 2px solid rgba(0,0,0,0.3);
-      border-top-color: #000;
-      border-radius: 50%;
-      animation: spin 0.6s linear infinite;
-      display: none;
-    }
-
+    .actions { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 16px; }
+    .btn { border: 0; border-radius: 16px; padding: 15px 18px; cursor: pointer; font-weight: 800; color: #fff; background: var(--primary); display: flex; align-items: center; justify-content: center; gap: 9px; transition: .15s; }
+    .btn.secondary { background: #1fc48d; }
+    .btn:hover:not(:disabled) { transform: translateY(-1px); filter: brightness(.98); }
+    .btn:disabled { opacity: .45; cursor: not-allowed; }
+    .spinner { width: 15px; height: 15px; border: 2px solid rgba(255,255,255,.38); border-top-color: #fff; border-radius: 50%; display: none; animation: spin .7s linear infinite; }
     .btn.loading .spinner { display: block; }
-    .btn.loading .btn-text { opacity: 0.7; }
 
-    .status-box {
-      margin-top: 20px;
-      padding: 16px;
-      border: 1px solid var(--border);
-      font-family: var(--mono);
-      font-size: 12px;
-      line-height: 1.7;
-      display: none;
+    .upload-card { height: 100%; display: flex; flex-direction: column; }
+    #printDrop { flex: 1; border: 1.5px dashed #dde3f2; background: #f9fbff; border-radius: 18px; min-height: 250px; display: flex; align-items: center; justify-content: center; text-align: center; cursor: pointer; padding: 18px; transition: .15s; overflow: hidden; }
+    #printDrop:hover { border-color: var(--primary); background: #f4f6ff; }
+    #printText { color: var(--muted); font-size: 13px; font-weight: 700; line-height: 1.55; }
+    #printInput { display: none; }
+    #printPreview { display: none; width: 100%; max-height: 245px; object-fit: contain; border-radius: 16px; background: #fff; }
+
+    .status-box { margin-top: 18px; border-radius: 18px; padding: 15px 16px; display: none; font-size: 13px; line-height: 1.55; }
+    .status-box.visible { display: block; animation: fadeUp .25s ease both; }
+    .status-box.success { background: #e7f9ef; color: #12845c; border: 1px solid #bbefd3; }
+    .status-box.error { background: #fff0f2; color: #b42d44; border: 1px solid #ffd3dc; }
+    .status-label { text-transform: uppercase; font-size: 11px; font-weight: 900; letter-spacing: .08em; margin-bottom: 4px; }
+
+    .lower-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 22px; margin-top: 22px; }
+    .mini-list { display: flex; flex-direction: column; gap: 10px; }
+    .history-item { display: flex; justify-content: space-between; gap: 10px; padding: 12px; border: 1px solid var(--line); border-radius: 14px; background: #fbfcff; font-size: 12px; }
+    .history-cmd { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .history-badge { flex-shrink: 0; font-weight: 800; color: var(--primary); }
+    .empty { color: var(--muted); font-size: 13px; line-height: 1.5; }
+    .bars { display: flex; align-items: end; justify-content: space-between; height: 150px; gap: 8px; padding-top: 10px; }
+    .bar { width: 26px; border-radius: 999px 999px 8px 8px; background: linear-gradient(180deg,var(--primary),#2dd8a3); }
+    .tips li { margin-left: 18px; margin-bottom: 9px; color: #7d86a5; font-size: 13px; line-height: 1.5; }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+    @keyframes fadeUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+    @media (max-width: 980px) {
+      body { padding: 0; }
+      .app { min-height: 100vh; border-radius: 0; grid-template-columns: 1fr; }
+      .sidebar { display: none; }
+      .main { padding: 22px; }
+      .topbar { flex-wrap: wrap; }
+      .search { order: 3; max-width: none; width: 100%; }
+      .grid, .command-box, .lower-grid { grid-template-columns: 1fr; }
+      .stats { grid-template-columns: repeat(2,1fr); }
+      .actions { grid-template-columns: 1fr; }
     }
-
-    .status-box.visible { display: block; animation: fadeUp 0.3s ease both; }
-    .status-box.success { border-color: var(--accent); background: var(--accent-dim); }
-    .status-box.error { border-color: var(--error); background: rgba(255,77,77,0.05); }
-
-    .status-label {
-      font-size: 10px;
-      letter-spacing: 0.15em;
-      text-transform: uppercase;
-      margin-bottom: 6px;
-    }
-
-    .status-box.success .status-label { color: var(--accent); }
-    .status-box.error .status-label { color: var(--error); }
-    .status-message { color: var(--text); }
-
-    .poll-badge {
-      display: none;
-      align-items: center;
-      gap: 6px;
-      margin-top: 10px;
-      font-size: 10px;
-      color: var(--muted);
-    }
-
-    .poll-badge.visible { display: flex; }
-
-    .poll-dot {
-      width: 6px;
-      height: 6px;
-      border-radius: 50%;
-      background: var(--accent);
-      animation: pulse 1.2s ease infinite;
-    }
-
-    .history {
-      width: 100%;
-      max-width: 680px;
-      animation: fadeUp 0.6s 0.2s ease both;
-    }
-
-    .history-title {
-      font-family: var(--mono);
-      font-size: 10px;
-      letter-spacing: 0.15em;
-      text-transform: uppercase;
-      color: var(--muted);
-      margin-bottom: 12px;
-    }
-
-    .history-list { display: flex; flex-direction: column; gap: 8px; }
-
-    .history-item {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 12px 16px;
-      border: 1px solid var(--border);
-      background: var(--surface);
-      gap: 12px;
-      animation: fadeUp 0.3s ease both;
-    }
-
-    .history-cmd {
-      font-family: var(--mono);
-      font-size: 12px;
-      color: var(--text);
-      flex: 1;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-
-    .history-badge {
-      font-family: var(--mono);
-      font-size: 10px;
-      padding: 3px 8px;
-      border: 1px solid;
-      white-space: nowrap;
-      flex-shrink: 0;
-    }
-
-    .badge-novo { color: #aaa; border-color: #333; }
-    .badge-processando { color: #ffcc00; border-color: #ffcc0044; background: rgba(255,204,0,0.05); }
-    .badge-concluido { color: var(--accent); border-color: var(--accent); background: var(--accent-dim); }
-    .badge-erro { color: var(--error); border-color: var(--error); background: rgba(255,77,77,0.05); }
-
-    @keyframes fadeDown { from { opacity:0; transform:translateY(-20px); } to { opacity:1; transform:translateY(0); } }
-    @keyframes fadeUp { from { opacity:0; transform:translateY(16px); } to { opacity:1; transform:translateY(0); } }
-    @keyframes spin { to { transform:rotate(360deg); } }
-    @keyframes pulse { 0%,100% { opacity:1; transform:scale(1); } 50% { opacity:0.4; transform:scale(0.8); } }
-
-    #printDrop {
-  transition: all 0.15s;
-}
-
-#printDrop:hover {
-  border-color: var(--accent);
-  background: var(--accent-dim);
-}
   </style>
 </head>
 <body>
-  <div class="wrapper">
-
-    <div class="header">
-      <div class="tag">Comercial Gomes ◆ Social Media</div>
-      <h1>Comando<span>.</span></h1>
-      <p class="subtitle">// digite → IA interpreta → agenda automaticamente</p>
-    </div>
-
-    <div class="card">
-      <label class="input-label">Novo comando</label>
-      <div class="input-wrap">
-        <span class="prompt-prefix">›</span>
-        <textarea id="comandoInput" placeholder="ex: reels decor entrecasa amanhã&#10;ex: status vasos mabruk hoje&#10;ex: 4 reels essa semana" rows="3"></textarea>
+  <div class="app">
+    <aside class="sidebar">
+      <div class="brand"><div class="brand-icon">⌁</div><span>Comando</span></div>
+      <nav class="nav">
+        <button class="nav-item active"><span class="nav-icon">◔</span>Dashboard</button>
+        <button class="nav-item"><span class="nav-icon">▥</span>Cronograma</button>
+        <button class="nav-item"><span class="nav-icon">◉</span>Prints</button>
+        <button class="nav-item"><span class="nav-icon">↗</span>Notion</button>
+        <button class="nav-item"><span class="nav-icon">⚙</span>Configurações</button>
+      </nav>
+      <div class="side-card">
+        <div style="font-size:28px">✨</div>
+        <strong>Social IA</strong>
+        <p>Texto ou print do editor viram conteúdo agendado automaticamente.</p>
       </div>
+    </aside>
 
-     <div class="examples">
-
-  <!-- 🧠 Inteligente -->
-  <button class="example" onclick="fillExample('programar para essa semana: preencher com reels e status')">
-    preencher semana
-  </button>
-
-  <!-- 🎥 Reels -->
-  <button class="example" onclick="fillExample('programar para essa semana: 4 reels de achadinhos')">
-    4 reels achadinhos
-  </button>
-
-  <button class="example" onclick="fillExample('programar para essa semana: reels de produtos mais vendidos')">
-    reels mais vendidos
-  </button>
-
-  <!-- 📱 Status -->
-  <button class="example" onclick="fillExample('programar para hoje: 2 status de novidades')">
-    status hoje
-  </button>
-
-  <!-- 💰 Conversão -->
-  <button class="example" onclick="fillExample('programar para sábado: carrossel de promoção')">
-    carrossel promoção
-  </button>
-
-  <!-- 🎬 Lifestyle -->
-  <button class="example" onclick="fillExample('programar para amanhã: reels de tour pela loja')">
-    tour loja
-  </button>
-
-</div>
-
-      <div class="options-group">
-        <p>Tipo (opcional — sobrescreve a IA)</p>
-        <div class="opts">
-          <label><input type="checkbox" name="tipo" value="Reels"><span>Reels</span></label>
-          <label><input type="checkbox" name="tipo" value="Carrossel"><span>Carrossel</span></label>
-          <label><input type="checkbox" name="tipo" value="Post"><span>Post</span></label>
-          <label><input type="checkbox" name="tipo" value="Status"><span>Status</span></label>
+    <main class="main">
+      <header class="topbar">
+        <div class="title-block">
+          <h1>Dashboard</h1>
+          <p>Comercial Gomes · planejamento de conteúdo automático</p>
         </div>
-      </div>
+        <input class="search" placeholder="Buscar comando, tema ou conteúdo..." />
+        <div class="user-pill"><div class="avatar">CG</div><div><strong>Comercial Gomes</strong><span>Social Media</span></div></div>
+      </header>
 
-      <div class="options-group">
-        <p>Plataforma (opcional — sobrescreve a IA)</p>
-        <div class="opts">
-          <label><input type="checkbox" name="plataforma" value="Instagram"><span>Instagram</span></label>
-          <label><input type="checkbox" name="plataforma" value="TikTok"><span>TikTok</span></label>
-          <label><input type="checkbox" name="plataforma" value="WhatsApp"><span>WhatsApp</span></label>
+      <section class="grid">
+        <div>
+          <div class="card">
+            <h2>Resumo de hoje</h2>
+            <p class="card-sub">Acompanhe o fluxo do assistente de conteúdo</p>
+            <div class="stats">
+              <div class="stat"><div class="stat-icon">▶</div><div><strong id="statReels">0</strong><span>Reels criados</span></div></div>
+              <div class="stat"><div class="stat-icon">☘</div><div><strong id="statStatus">0</strong><span>Status criados</span></div></div>
+              <div class="stat"><div class="stat-icon">✓</div><div><strong id="statOk">0</strong><span>Agendados</span></div></div>
+              <div class="stat"><div class="stat-icon">✦</div><div><strong id="statPrint">0</strong><span>Prints lidos</span></div></div>
+            </div>
+          </div>
+
+          <div class="card command-card">
+            <h2>Novo comando</h2>
+            <p class="card-sub">Digite uma ordem ou escolha uma sugestão pronta</p>
+            <div class="command-box">
+              <div class="input-panel">
+                <div class="input-label">Comando de texto</div>
+                <textarea id="comandoInput" placeholder="ex: programar para essa semana: preencher com reels e status&#10;ex: programar para hoje: 2 status de novidades&#10;ex: programar para essa semana: 4 reels de achadinhos"></textarea>
+                <div class="examples">
+                  <button class="example" onclick="fillExample('programar para essa semana: preencher com reels e status')">preencher semana</button>
+                  <button class="example" onclick="fillExample('programar para essa semana: 4 reels de achadinhos')">4 reels achadinhos</button>
+                  <button class="example" onclick="fillExample('programar para essa semana: reels de produtos mais vendidos')">reels mais vendidos</button>
+                  <button class="example" onclick="fillExample('programar para hoje: 2 status de novidades')">status hoje</button>
+                  <button class="example" onclick="fillExample('programar para sábado: carrossel de promoção')">carrossel promoção</button>
+                  <button class="example" onclick="fillExample('programar para amanhã: reels de tour pela loja')">tour loja</button>
+                </div>
+              </div>
+
+              <div class="side-options">
+                <div class="option-box">
+                  <p>Tipo opcional</p>
+                  <div class="opts">
+                    <label><input type="checkbox" name="tipo" value="Reels"><span>Reels</span></label>
+                    <label><input type="checkbox" name="tipo" value="Carrossel"><span>Carrossel</span></label>
+                    <label><input type="checkbox" name="tipo" value="Post"><span>Post</span></label>
+                    <label><input type="checkbox" name="tipo" value="Status"><span>Status</span></label>
+                  </div>
+                </div>
+                <div class="option-box">
+                  <p>Plataforma opcional</p>
+                  <div class="opts">
+                    <label><input type="checkbox" name="plataforma" value="Instagram"><span>Instagram</span></label>
+                    <label><input type="checkbox" name="plataforma" value="TikTok"><span>TikTok</span></label>
+                    <label><input type="checkbox" name="plataforma" value="WhatsApp"><span>WhatsApp</span></label>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="actions">
+              <button class="btn" id="enviarBtn" onclick="enviarComando()"><div class="spinner"></div><span class="btn-text">Enviar comando</span></button>
+              <button class="btn secondary" id="printBtn" onclick="enviarPrint()" disabled><div class="spinner"></div><span class="btn-text">Agendar print</span></button>
+            </div>
+
+            <div class="status-box" id="statusBox">
+              <div class="status-label" id="statusLabel"></div>
+              <div class="status-message" id="statusMessage"></div>
+            </div>
+          </div>
         </div>
-      </div>
 
-      <div class="options-group">
-  <p>Print do editor</p>
-
-  <div class="input-wrap" id="printDrop" style="min-height:120px; cursor:pointer; align-items:center; justify-content:center; padding:20px;">
-    <input type="file" id="printInput" accept="image/*" style="display:none;">
-    <span id="printText" style="font-family:var(--mono); font-size:12px; color:var(--muted);">
-      Cole o print com Ctrl+V ou clique aqui para selecionar
-    </span>
-  </div>
-
-  <img id="printPreview" style="display:none; width:100%; max-height:260px; object-fit:contain; margin-top:12px; border:1px solid var(--border);">
-
-  <button class="btn" id="printBtn" type="button" onclick="enviarPrint()" disabled>
-    <div class="spinner"></div>
-    <span class="btn-text">Agendar Print no Notion</span>
-  </button>
-</div>
-      
-      <button class="btn" id="enviarBtn" onclick="enviarComando()">
-        <div class="spinner"></div>
-        <span class="btn-text">Enviar Comando</span>
-      </button>
-
-      <div class="status-box" id="statusBox">
-        <div class="status-label" id="statusLabel"></div>
-        <div class="status-message" id="statusMessage"></div>
-        <div class="poll-badge" id="pollBadge">
-          <div class="poll-dot"></div>
-          aguardando Make processar...
+        <div class="card upload-card">
+          <h2>Upload do editor</h2>
+          <p class="card-sub">Cole o print com Ctrl+V ou clique na área abaixo</p>
+          <div id="printDrop">
+            <input type="file" id="printInput" accept="image/*">
+            <span id="printText">📸<br>Colar print da lista<br><small>PNG ou JPG · Google Drive / galeria do editor</small></span>
+            <img id="printPreview" alt="Prévia do print" />
+          </div>
         </div>
-      </div>
-    </div>
+      </section>
 
-    <div class="history" id="historySection" style="display:none">
-      <div class="history-title">// histórico da sessão</div>
-      <div class="history-list" id="historyList"></div>
-    </div>
+      <section class="lower-grid">
+        <div class="card" id="historySection">
+          <h2>Histórico</h2>
+          <p class="card-sub">Últimos envios da sessão</p>
+          <div class="mini-list" id="historyList"><p class="empty">Nenhum envio ainda.</p></div>
+        </div>
 
+        <div class="card">
+          <h2>Volume da semana</h2>
+          <p class="card-sub">Visual de acompanhamento</p>
+          <div class="bars">
+            <div class="bar" style="height:70%"></div><div class="bar" style="height:90%"></div><div class="bar" style="height:62%"></div><div class="bar" style="height:80%"></div><div class="bar" style="height:55%"></div><div class="bar" style="height:68%"></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2>Regras ativas</h2>
+          <p class="card-sub">Padrões usados pela IA</p>
+          <ul class="tips">
+            <li>Reels: Instagram, TikTok e WhatsApp.</li>
+            <li>Status: WhatsApp e TikTok.</li>
+            <li>Posts e carrosséis: Estático.</li>
+            <li>Títulos corrigidos em português.</li>
+          </ul>
+        </div>
+      </section>
+    </main>
   </div>
 
   <script>
     const sessionHistory = [];
+    let printBase64 = null;
+    let stats = { reels: 0, status: 0, ok: 0, print: 0 };
 
-    // Fallback para :has() — marca label como .checked ao clicar
-    document.querySelectorAll('.options-group input[type="checkbox"]').forEach(cb => {
-      cb.addEventListener('change', () => {
-        cb.closest('label').classList.toggle('checked', cb.checked);
-      });
+    document.querySelectorAll('.opts input[type="checkbox"]').forEach(cb => {
+      cb.addEventListener('change', () => cb.closest('label').classList.toggle('checked', cb.checked));
     });
 
     function fillExample(text) {
@@ -507,76 +306,52 @@
       document.getElementById('comandoInput').focus();
     }
 
-    function showStatus(type, label, message, polling = false) {
+    function showStatus(type, label, message) {
       const box = document.getElementById('statusBox');
-      const lbl = document.getElementById('statusLabel');
-      const msg = document.getElementById('statusMessage');
-      const poll = document.getElementById('pollBadge');
+      document.getElementById('statusLabel').textContent = label;
+      document.getElementById('statusMessage').textContent = message;
       box.className = 'status-box visible ' + type;
-      lbl.textContent = label;
-      msg.textContent = message;
-      poll.classList.toggle('visible', polling);
-    }
-
-    function addToHistory(comando, itemId) {
-      const item = { comando, itemId, status: 'Novo' };
-      sessionHistory.unshift(item);
-      renderHistory();
-      startPolling(item);
-    }
-
-    function renderHistory() {
-      const section = document.getElementById('historySection');
-      const list = document.getElementById('historyList');
-      section.style.display = sessionHistory.length ? 'block' : 'none';
-      list.innerHTML = sessionHistory.slice(0, 8).map((item, i) => {
-        const badge = {
-          'Novo': 'badge-novo',
-          'Processando': 'badge-processando',
-          'Concluído': 'badge-concluido',
-          'Erro': 'badge-erro'
-        }[item.status] || 'badge-novo';
-        return `<div class="history-item" style="animation-delay:${i * 0.05}s">
-          <span class="history-cmd">› ${escapeHtml(item.comando)}</span>
-          <span class="history-badge ${badge}">${item.status}</span>
-        </div>`;
-      }).join('');
     }
 
     function escapeHtml(str) {
       return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
     }
 
-    function startPolling(item) {
-      if (!item.itemId) return;
-      let attempts = 0;
-      const interval = setInterval(async () => {
-        attempts++;
-        try {
-          const res = await fetch('/api/status/' + item.itemId);
-          const data = await res.json();
-          if (data.status) { item.status = data.status; renderHistory(); }
-          if (data.status === 'Concluído') {
-            clearInterval(interval);
-            showStatus('success', '✓ concluído', data.resultado || 'Agendado com sucesso!');
-          } else if (data.status === 'Erro') {
-            clearInterval(interval);
-            showStatus('error', '✗ erro', data.resultado || 'Erro durante o processamento.');
-          }
-        } catch (e) {}
-        if (attempts >= 24) clearInterval(interval);
-      }, 5000);
+    function addToHistory(comando, status = 'Concluído') {
+      sessionHistory.unshift({ comando, status });
+      renderHistory();
+    }
+
+    function renderHistory() {
+      const list = document.getElementById('historyList');
+      if (!sessionHistory.length) {
+        list.innerHTML = '<p class="empty">Nenhum envio ainda.</p>';
+        return;
+      }
+      list.innerHTML = sessionHistory.slice(0, 8).map(item => `
+        <div class="history-item">
+          <span class="history-cmd">${escapeHtml(item.comando)}</span>
+          <span class="history-badge">${item.status}</span>
+        </div>
+      `).join('');
+    }
+
+    function updateStats(itens = [], isPrint = false) {
+      stats.ok += itens.length || 0;
+      stats.reels += itens.filter(i => i.tipo === 'Reels').length;
+      stats.status += itens.filter(i => i.tipo === 'Status').length;
+      if (isPrint) stats.print += 1;
+      document.getElementById('statReels').textContent = stats.reels;
+      document.getElementById('statStatus').textContent = stats.status;
+      document.getElementById('statOk').textContent = stats.ok;
+      document.getElementById('statPrint').textContent = stats.print;
     }
 
     async function enviarComando() {
       const input = document.getElementById('comandoInput');
       const btn = document.getElementById('enviarBtn');
       const comando = input.value.trim();
-
-      if (!comando) {
-        showStatus('error', '✗ vazio', 'Digite um comando antes de enviar.');
-        return;
-      }
+      if (!comando) return showStatus('error', 'Erro', 'Digite um comando antes de enviar.');
 
       const tipoManual = Array.from(document.querySelectorAll('input[name="tipo"]:checked')).map(i => i.value);
       const plataformaManual = Array.from(document.querySelectorAll('input[name="plataforma"]:checked')).map(i => i.value);
@@ -591,23 +366,95 @@
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ comando, tipoManual, plataformaManual })
         });
-
         const data = await res.json();
+        if (!res.ok || !data.success) throw new Error(data.error || 'Erro ao enviar comando.');
 
-        if (!res.ok) {
-          showStatus('error', '✗ erro', data.error || 'Erro ao enviar comando.');
-        } else {
-          showStatus('success', '✓ enviado', data.message || 'Comando enviado com sucesso!', false);
-          // usa o id do primeiro item criado para histórico
-          const primeiroId = data.itens && data.itens[0] ? data.itens[0].id : null;
-          addToHistory(comando, primeiroId);
-          input.value = '';
-        }
+        showStatus('success', 'Comando enviado', data.message || 'Conteúdo agendado com sucesso.');
+        updateStats(data.itens || []);
+        addToHistory(comando);
+        input.value = '';
       } catch (e) {
-        showStatus('error', '✗ erro de rede', 'Não foi possível conectar ao servidor.');
+        showStatus('error', 'Erro', e.message || 'Não foi possível conectar ao servidor.');
       } finally {
         btn.disabled = false;
         btn.classList.remove('loading');
+      }
+    }
+
+    const printDrop = document.getElementById('printDrop');
+    const printInput = document.getElementById('printInput');
+    const printPreview = document.getElementById('printPreview');
+    const printText = document.getElementById('printText');
+    const printBtn = document.getElementById('printBtn');
+
+    printDrop.addEventListener('click', () => printInput.click());
+    printInput.addEventListener('change', e => { if (e.target.files[0]) carregarPrint(e.target.files[0]); });
+    document.addEventListener('paste', e => {
+      const items = e.clipboardData?.items;
+      if (!items) return;
+      for (const item of items) {
+        if (item.type.startsWith('image/')) {
+          carregarPrint(item.getAsFile());
+          break;
+        }
+      }
+    });
+
+    function carregarPrint(file) {
+      const reader = new FileReader();
+      reader.onload = e => {
+        printBase64 = e.target.result;
+        printPreview.src = e.target.result;
+        printPreview.style.display = 'block';
+        printText.style.display = 'none';
+        printBtn.disabled = false;
+      };
+      reader.readAsDataURL(file);
+    }
+
+    async function enviarPrint() {
+      if (!printBase64) return showStatus('error', 'Sem print', 'Cole ou selecione um print antes de enviar.');
+      printBtn.disabled = true;
+      printBtn.classList.add('loading');
+      document.getElementById('statusBox').className = 'status-box';
+
+      try {
+        const res = await fetch('/api/interpretar-print', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            imagemBase64: printBase64,
+            autoAgendar: true,
+            instrucoes: `
+              Leia o print da lista do editor.
+              Identifique todos os vídeos/conteúdos.
+              Reels deve usar plataforma ["Instagram", "TikTok", "WhatsApp"].
+              Status deve usar plataforma ["WhatsApp", "TikTok"].
+              Post e Carrossel devem usar plataforma ["Instagram"].
+              No tema: Reels e Status começam com "Vídeo: "; Post e Carrossel começam com "Estático: ".
+              Corrija erros simples de português, exemplo: Tur da Gomes vira Tour da Gomes.
+              Remova extensões como .mov, .mp4, .png e prefixos REELS, STATUS, POST, CARROSSEL.
+              Agende diretamente no Notion.
+            `
+          })
+        });
+        const data = await res.json();
+        if (!res.ok || !data.success) throw new Error(data.error || 'Erro ao interpretar print.');
+
+        showStatus('success', 'Print agendado', data.message || `${data.total || 0} conteúdo(s) agendado(s) no Notion.`);
+        updateStats(data.itens || data.interpretados || [], true);
+        addToHistory('Print do editor agendado');
+
+        printBase64 = null;
+        printInput.value = '';
+        printPreview.style.display = 'none';
+        printText.style.display = 'block';
+        printBtn.disabled = true;
+      } catch (e) {
+        showStatus('error', 'Erro', e.message || 'Não foi possível conectar ao servidor.');
+      } finally {
+        printBtn.disabled = false;
+        printBtn.classList.remove('loading');
       }
     }
 
@@ -617,109 +464,6 @@
         enviarComando();
       }
     });
-
-    let printBase64 = null;
-
-const printDrop = document.getElementById('printDrop');
-const printInput = document.getElementById('printInput');
-const printPreview = document.getElementById('printPreview');
-const printText = document.getElementById('printText');
-const printBtn = document.getElementById('printBtn');
-
-printDrop.addEventListener('click', () => {
-  printInput.click();
-});
-
-printInput.addEventListener('change', (e) => {
-  const file = e.target.files[0];
-  if (file) carregarPrint(file);
-});
-
-document.addEventListener('paste', (e) => {
-  const items = e.clipboardData?.items;
-  if (!items) return;
-
-  for (const item of items) {
-    if (item.type.startsWith('image/')) {
-      const file = item.getAsFile();
-      carregarPrint(file);
-      break;
-    }
-  }
-});
-
-function carregarPrint(file) {
-  const reader = new FileReader();
-
-  reader.onload = (e) => {
-    printBase64 = e.target.result;
-    printPreview.src = e.target.result;
-    printPreview.style.display = 'block';
-    printText.textContent = 'Print carregado. Clique em “Agendar Print no Notion”.';
-    printBtn.disabled = false;
-  };
-
-  reader.readAsDataURL(file);
-}
-
-async function enviarPrint() {
-  if (!printBase64) {
-    showStatus('error', '✗ sem print', 'Cole ou selecione um print antes de enviar.');
-    return;
-  }
-
-  printBtn.disabled = true;
-  printBtn.classList.add('loading');
-  document.getElementById('statusBox').className = 'status-box';
-
-  try {
-    const res = await fetch('/api/interpretar-print', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        imagemBase64: printBase64,
-        autoAgendar: true,
-        instrucoes: `
-          Leia o print da lista do editor.
-          Identifique todos os vídeos/conteúdos.
-          Se tiver REELS, use tipo Reels e plataforma Instagram.
-          Se tiver STATUS, use tipo Status e plataforma WhatsApp.
-          Se tiver POST, use tipo Post e plataforma Instagram.
-          Se tiver CARROSSEL, use tipo Carrossel e plataforma Instagram.
-          Use o nome do arquivo como tema limpo.
-          Agende diretamente no Notion.
-        `
-      })
-    });
-
-    const data = await res.json();
-
-    if (!res.ok || !data.success) {
-      showStatus('error', '✗ erro', data.error || 'Erro ao interpretar print.');
-      return;
-    }
-
-    showStatus(
-      'success',
-      '✓ print agendado',
-      data.message || `${data.total || 0} conteúdo(s) agendado(s) no Notion.`
-    );
-
-    printBase64 = null;
-    printInput.value = '';
-    printPreview.style.display = 'none';
-    printBtn.disabled = true;
-    printText.textContent = 'Cole o print com Ctrl+V ou clique aqui para selecionar';
-
-    addToHistory('Print do editor agendado', data.itens && data.itens[0] ? data.itens[0].id : null);
-
-  } catch (e) {
-    showStatus('error', '✗ erro de rede', 'Não foi possível conectar ao servidor.');
-  } finally {
-    printBtn.disabled = false;
-    printBtn.classList.remove('loading');
-  }
-}
   </script>
 </body>
 </html>
