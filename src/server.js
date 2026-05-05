@@ -207,18 +207,22 @@ async function criarNoCronograma(item) {
 // Datas
 // ─────────────────────────────────────────────
 
+function hojeBrasil() {
+  const agora = new Date();
+
+  return new Date(
+    agora.toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' })
+  );
+}
+
+function formatarDataBrasil(data) {
+  return data.toLocaleDateString('en-CA', {
+    timeZone: 'America/Sao_Paulo'
+  });
+}
+
 function calcularJanelaDatas(comando) {
-function calcularJanelaDatas(comando) {
-
-  function hojeBrasil() {
-    const agora = new Date();
-
-    return new Date(
-      agora.toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' })
-    );
-  }
-
-  const hoje = hojeBrasil(); // ✅ AGORA EXISTE
+  const hoje = hojeBrasil();
   hoje.setHours(0, 0, 0, 0);
 
   const diaSemana = hoje.getDay();
@@ -235,66 +239,25 @@ function calcularJanelaDatas(comando) {
 
     dataFim = new Date(dataInicio);
     dataFim.setDate(dataInicio.getDate() + 6);
-
   } else if (cmd.includes('essa semana') || cmd.includes('esta semana')) {
-
     dataInicio = new Date(hoje);
 
     dataFim = new Date(hoje);
     dataFim.setDate(hoje.getDate() + (6 - diaSemana));
-
   } else if (cmd.includes('esse mês') || cmd.includes('este mês')) {
-
     dataInicio = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
     dataFim = new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0);
-
   } else {
-
     dataInicio = new Date(hoje);
     dataFim = new Date(hoje);
     dataFim.setDate(hoje.getDate() + 30);
   }
 
   return {
-    inicio: dataInicio.toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' }),
-    fim: dataFim.toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
+    inicio: formatarDataBrasil(dataInicio),
+    fim: formatarDataBrasil(dataFim)
   };
 }
-
-  const diaSemana = hoje.getDay();
-  const cmd = String(comando || '').toLowerCase();
-
-  let dataInicio;
-  let dataFim;
-
-  if (cmd.includes('semana que vem') || cmd.includes('próxima semana')) {
-    const diasAteProxSeg = (8 - diaSemana) % 7 || 7;
-
-    dataInicio = new Date(hoje);
-    dataInicio.setDate(hojeData.getDate() + diasAteProxSeg);
-
-    dataFim = new Date(dataInicio);
-    dataFim.setDate(dataInicio.getDate() + 6);
-  } else if (cmd.includes('essa semana') || cmd.includes('esta semana')) {
-    dataInicio = new Date(hoje);
-
-    dataFim = new Date(hoje);
-    dataFim.setDate(hojeData.getDate() + (6 - diaSemana));
-  } else if (cmd.includes('esse mês') || cmd.includes('este mês')) {
-    dataInicio = new Date(hoje.getFullYear(), hoje.getMonth(), hojeData.getDate());
-    dataFim = new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0);
-  } else {
-    dataInicio = new Date(hoje);
-    dataFim = new Date(hoje);
-    dataFim.setDate(hojeData.getDate() + 30);
-  }
-
-  return {
-    inicio: dataInicio.toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' }),
-    fim: dataFim.toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
-  };
-}
-
 // ─────────────────────────────────────────────
 // IA por texto — Hugging Face
 // ─────────────────────────────────────────────
