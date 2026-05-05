@@ -7,32 +7,6 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;800&display=swap" rel="stylesheet">
   <style>
-    .options-group {
-  margin-top: 16px;
-  display: flex;
-  gap: 10px;
-  flex-wrap: wrap;
-}
-
-.options-group p {
-  width: 100%;
-  font-family: var(--mono);
-  font-size: 10px;
-  color: var(--muted);
-  margin-bottom: 6px;
-  text-transform: uppercase;
-}
-
-.options-group label {
-  border: 1px solid var(--border);
-  padding: 6px 10px;
-  font-size: 11px;
-  cursor: pointer;
-}
-
-.options-group input {
-  margin-right: 4px;
-}
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     :root {
@@ -44,7 +18,6 @@
       --text: #f0f0f0;
       --muted: #666;
       --error: #ff4d4d;
-      --success: #c8ff00;
       --mono: 'Space Mono', monospace;
       --sans: 'Syne', sans-serif;
     }
@@ -57,7 +30,6 @@
       overflow-x: hidden;
     }
 
-    /* Grid background */
     body::before {
       content: '';
       position: fixed;
@@ -82,11 +54,7 @@
       gap: 48px;
     }
 
-    /* Header */
-    .header {
-      text-align: center;
-      animation: fadeDown 0.6s ease both;
-    }
+    .header { text-align: center; animation: fadeDown 0.6s ease both; }
 
     .tag {
       display: inline-block;
@@ -110,9 +78,7 @@
       color: var(--text);
     }
 
-    h1 span {
-      color: var(--accent);
-    }
+    h1 span { color: var(--accent); }
 
     .subtitle {
       margin-top: 12px;
@@ -122,7 +88,6 @@
       letter-spacing: 0.05em;
     }
 
-    /* Main card */
     .card {
       width: 100%;
       max-width: 680px;
@@ -143,17 +108,13 @@
     }
 
     .input-wrap {
-      position: relative;
       display: flex;
       align-items: stretch;
-      gap: 0;
       border: 1px solid var(--border);
       transition: border-color 0.2s;
     }
 
-    .input-wrap:focus-within {
-      border-color: var(--accent);
-    }
+    .input-wrap:focus-within { border-color: var(--accent); }
 
     .prompt-prefix {
       font-family: var(--mono);
@@ -178,12 +139,10 @@
       line-height: 1.6;
       padding: 16px;
       resize: none;
-      min-height: 100px;
+      min-height: 90px;
     }
 
-    textarea::placeholder {
-      color: #333;
-    }
+    textarea::placeholder { color: #333; }
 
     .examples {
       margin-top: 12px;
@@ -210,8 +169,68 @@
       background: var(--accent-dim);
     }
 
-    .btn {
+    /* Options group (tipo / plataforma) */
+    .options-group {
       margin-top: 20px;
+    }
+
+    .options-group p {
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 10px;
+    }
+
+    .options-group .opts {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .options-group label {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      border: 1px solid var(--border);
+      padding: 6px 12px;
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--muted);
+      cursor: pointer;
+      transition: all 0.15s;
+      user-select: none;
+    }
+
+    .options-group label:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    .options-group input[type="checkbox"] {
+      display: none;
+    }
+
+    .options-group input[type="checkbox"]:checked + span {
+      color: var(--accent);
+    }
+
+    .options-group label:has(input:checked) {
+      border-color: var(--accent);
+      color: var(--accent);
+      background: var(--accent-dim);
+    }
+
+    /* Fallback para browsers sem :has() */
+    .options-group label.checked {
+      border-color: var(--accent);
+      color: var(--accent);
+      background: var(--accent-dim);
+    }
+
+    .btn {
+      margin-top: 24px;
       width: 100%;
       background: var(--accent);
       color: #000;
@@ -228,8 +247,6 @@
       align-items: center;
       justify-content: center;
       gap: 10px;
-      position: relative;
-      overflow: hidden;
     }
 
     .btn:hover:not(:disabled) {
@@ -256,7 +273,6 @@
     .btn.loading .spinner { display: block; }
     .btn.loading .btn-text { opacity: 0.7; }
 
-    /* Status area */
     .status-box {
       margin-top: 20px;
       padding: 16px;
@@ -265,10 +281,9 @@
       font-size: 12px;
       line-height: 1.7;
       display: none;
-      animation: fadeUp 0.3s ease both;
     }
 
-    .status-box.visible { display: block; }
+    .status-box.visible { display: block; animation: fadeUp 0.3s ease both; }
     .status-box.success { border-color: var(--accent); background: var(--accent-dim); }
     .status-box.error { border-color: var(--error); background: rgba(255,77,77,0.05); }
 
@@ -281,17 +296,18 @@
 
     .status-box.success .status-label { color: var(--accent); }
     .status-box.error .status-label { color: var(--error); }
-
     .status-message { color: var(--text); }
 
     .poll-badge {
-      display: inline-flex;
+      display: none;
       align-items: center;
       gap: 6px;
       margin-top: 10px;
       font-size: 10px;
       color: var(--muted);
     }
+
+    .poll-badge.visible { display: flex; }
 
     .poll-dot {
       width: 6px;
@@ -301,7 +317,6 @@
       animation: pulse 1.2s ease infinite;
     }
 
-    /* History */
     .history {
       width: 100%;
       max-width: 680px;
@@ -317,11 +332,7 @@
       margin-bottom: 12px;
     }
 
-    .history-list {
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-    }
+    .history-list { display: flex; flex-direction: column; gap: 8px; }
 
     .history-item {
       display: flex;
@@ -358,22 +369,10 @@
     .badge-concluido { color: var(--accent); border-color: var(--accent); background: var(--accent-dim); }
     .badge-erro { color: var(--error); border-color: var(--error); background: rgba(255,77,77,0.05); }
 
-    /* Animations */
-    @keyframes fadeDown {
-      from { opacity: 0; transform: translateY(-20px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-    @keyframes fadeUp {
-      from { opacity: 0; transform: translateY(16px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-    @keyframes spin {
-      to { transform: rotate(360deg); }
-    }
-    @keyframes pulse {
-      0%, 100% { opacity: 1; transform: scale(1); }
-      50% { opacity: 0.4; transform: scale(0.8); }
-    }
+    @keyframes fadeDown { from { opacity:0; transform:translateY(-20px); } to { opacity:1; transform:translateY(0); } }
+    @keyframes fadeUp { from { opacity:0; transform:translateY(16px); } to { opacity:1; transform:translateY(0); } }
+    @keyframes spin { to { transform:rotate(360deg); } }
+    @keyframes pulse { 0%,100% { opacity:1; transform:scale(1); } 50% { opacity:0.4; transform:scale(0.8); } }
   </style>
 </head>
 <body>
@@ -392,31 +391,41 @@
         <textarea id="comandoInput" placeholder="ex: reels decor entrecasa amanhã&#10;ex: status vasos mabruk hoje&#10;ex: 4 reels essa semana" rows="3"></textarea>
       </div>
 
-<!-- 👇 COLE AQUI -->
-<div class="options-group">
-  <p>Tipo</p>
-  <label><input type="checkbox" name="tipo" value="Reels"> Reels</label>
-  <label><input type="checkbox" name="tipo" value="Carrossel"> Carrossel</label>
-  <label><input type="checkbox" name="tipo" value="Post"> Post</label>
-  <label><input type="checkbox" name="tipo" value="Status"> Status</label>
-</div>
+      <div class="examples">
+        <button class="example" onclick="fillExample('reels decor entrecasa amanhã')">reels decor entrecasa amanhã</button>
+        <button class="example" onclick="fillExample('status vasos mabruk hoje')">status vasos mabruk hoje</button>
+        <button class="example" onclick="fillExample('4 reels essa semana')">4 reels essa semana</button>
+        <button class="example" onclick="fillExample('carrossel promoção sábado')">carrossel promoção sábado</button>
+      </div>
 
-<div class="options-group">
-  <p>Plataforma</p>
-  <label><input type="checkbox" name="plataforma" value="Instagram"> Instagram</label>
-  <label><input type="checkbox" name="plataforma" value="TikTok"> TikTok</label>
-  <label><input type="checkbox" name="plataforma" value="WhatsApp"> WhatsApp</label>
-</div>
+      <div class="options-group">
+        <p>Tipo (opcional — sobrescreve a IA)</p>
+        <div class="opts">
+          <label><input type="checkbox" name="tipo" value="Reels"><span>Reels</span></label>
+          <label><input type="checkbox" name="tipo" value="Carrossel"><span>Carrossel</span></label>
+          <label><input type="checkbox" name="tipo" value="Post"><span>Post</span></label>
+          <label><input type="checkbox" name="tipo" value="Status"><span>Status</span></label>
+        </div>
+      </div>
 
-<button class="btn" id="enviarBtn" onclick="enviarComando()">
-  <div class="spinner"></div>
-  <span class="btn-text">Enviar Comando</span>
-</button>
+      <div class="options-group">
+        <p>Plataforma (opcional — sobrescreve a IA)</p>
+        <div class="opts">
+          <label><input type="checkbox" name="plataforma" value="Instagram"><span>Instagram</span></label>
+          <label><input type="checkbox" name="plataforma" value="TikTok"><span>TikTok</span></label>
+          <label><input type="checkbox" name="plataforma" value="WhatsApp"><span>WhatsApp</span></label>
+        </div>
+      </div>
+
+      <button class="btn" id="enviarBtn" onclick="enviarComando()">
+        <div class="spinner"></div>
+        <span class="btn-text">Enviar Comando</span>
+      </button>
 
       <div class="status-box" id="statusBox">
         <div class="status-label" id="statusLabel"></div>
         <div class="status-message" id="statusMessage"></div>
-        <div class="poll-badge" id="pollBadge" style="display:none">
+        <div class="poll-badge" id="pollBadge">
           <div class="poll-dot"></div>
           aguardando Make processar...
         </div>
@@ -431,8 +440,14 @@
   </div>
 
   <script>
-    const history = [];
-    let pollInterval = null;
+    const sessionHistory = [];
+
+    // Fallback para :has() — marca label como .checked ao clicar
+    document.querySelectorAll('.options-group input[type="checkbox"]').forEach(cb => {
+      cb.addEventListener('change', () => {
+        cb.closest('label').classList.toggle('checked', cb.checked);
+      });
+    });
 
     function fillExample(text) {
       document.getElementById('comandoInput').value = text;
@@ -444,16 +459,15 @@
       const lbl = document.getElementById('statusLabel');
       const msg = document.getElementById('statusMessage');
       const poll = document.getElementById('pollBadge');
-
-      box.className = `status-box visible ${type}`;
+      box.className = 'status-box visible ' + type;
       lbl.textContent = label;
       msg.textContent = message;
-      poll.style.display = polling ? 'flex' : 'none';
+      poll.classList.toggle('visible', polling);
     }
 
     function addToHistory(comando, itemId) {
       const item = { comando, itemId, status: 'Novo' };
-      history.unshift(item);
+      sessionHistory.unshift(item);
       renderHistory();
       startPolling(item);
     }
@@ -461,125 +475,79 @@
     function renderHistory() {
       const section = document.getElementById('historySection');
       const list = document.getElementById('historyList');
-      section.style.display = history.length ? 'block' : 'none';
-
-      list.innerHTML = history.slice(0, 8).map((item, i) => {
+      section.style.display = sessionHistory.length ? 'block' : 'none';
+      list.innerHTML = sessionHistory.slice(0, 8).map((item, i) => {
         const badge = {
           'Novo': 'badge-novo',
           'Processando': 'badge-processando',
           'Concluído': 'badge-concluido',
           'Erro': 'badge-erro'
         }[item.status] || 'badge-novo';
-        return `
-          <div class="history-item" style="animation-delay:${i * 0.05}s">
-            <span class="history-cmd">› ${escapeHtml(item.comando)}</span>
-            <span class="history-badge ${badge}">${item.status}</span>
-          </div>
-        `;
+        return `<div class="history-item" style="animation-delay:${i * 0.05}s">
+          <span class="history-cmd">› ${escapeHtml(item.comando)}</span>
+          <span class="history-badge ${badge}">${item.status}</span>
+        </div>`;
       }).join('');
     }
 
     function escapeHtml(str) {
-      return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+      return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
     }
 
     function startPolling(item) {
       if (!item.itemId) return;
       let attempts = 0;
-      const max = 24; // 2 min polling (5s × 24)
-
       const interval = setInterval(async () => {
         attempts++;
         try {
-          const res = await fetch(`/api/status/${item.itemId}`);
+          const res = await fetch('/api/status/' + item.itemId);
           const data = await res.json();
-          item.status = data.status || item.status;
-          renderHistory();
-
+          if (data.status) { item.status = data.status; renderHistory(); }
           if (data.status === 'Concluído') {
             clearInterval(interval);
-            showStatus('success', '✓ concluído', data.resultado || 'Agendado com sucesso pelo Make.');
+            showStatus('success', '✓ concluído', data.resultado || 'Agendado com sucesso!');
           } else if (data.status === 'Erro') {
             clearInterval(interval);
             showStatus('error', '✗ erro', data.resultado || 'Erro durante o processamento.');
           }
         } catch (e) {}
-
-        if (attempts >= max) clearInterval(interval);
+        if (attempts >= 24) clearInterval(interval);
       }, 5000);
     }
 
-   async function enviarComando() {
-  const input = document.getElementById('comandoInput');
-  const btn = document.getElementById('enviarBtn');
-  const comando = input.value.trim();
+    async function enviarComando() {
+      const input = document.getElementById('comandoInput');
+      const btn = document.getElementById('enviarBtn');
+      const comando = input.value.trim();
 
-  if (!comando) {
-    showStatus('error', '✗ vazio', 'Digite um comando antes de enviar.');
-    return;
-  }
+      if (!comando) {
+        showStatus('error', '✗ vazio', 'Digite um comando antes de enviar.');
+        return;
+      }
 
-  const tipoManual = Array.from(document.querySelectorAll('input[name="tipo"]:checked'))
-    .map(i => i.value);
+      const tipoManual = Array.from(document.querySelectorAll('input[name="tipo"]:checked')).map(i => i.value);
+      const plataformaManual = Array.from(document.querySelectorAll('input[name="plataforma"]:checked')).map(i => i.value);
 
-  const plataformaManual = Array.from(document.querySelectorAll('input[name="plataforma"]:checked'))
-    .map(i => i.value);
+      btn.disabled = true;
+      btn.classList.add('loading');
+      document.getElementById('statusBox').className = 'status-box';
 
-  btn.disabled = true;
-  btn.classList.add('loading');
-
-  try {
-  const res = await fetch('/api/comando', {
-  method: 'POST',
-  headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify({
-    comando,
-    tipoManual,
-    plataformaManual
-  })
-});
-
-    const data = await res.json();
-
-    if (!res.ok) {
-      showStatus('error', '✗ erro', data.error || 'Erro ao enviar comando.');
-    } else {
-      showStatus('success', '✓ enviado', data.message || 'Comando enviado com sucesso.');
-      addToHistory(comando, data.id);
-      input.value = '';
-    }
-  } catch (e) {
-    showStatus('error', '✗ erro de rede', 'Não foi possível conectar ao servidor.');
-  } finally {
-    btn.disabled = false;
-    btn.classList.remove('loading');
-  }
-}
-
-    const data = await res.json();
-
-    if (!res.ok) {
-      showStatus('error', '✗ erro', data.error || 'Erro ao enviar comando.');
-    } else {
-      showStatus('success', '✓ enviado', data.message || 'Comando enviado com sucesso.');
-      addToHistory(comando, data.id);
-      input.value = '';
-    }
-  } catch (e) {
-    showStatus('error', '✗ erro de rede', 'Não foi possível conectar ao servidor.');
-  } finally {
-    btn.disabled = false;
-    btn.classList.remove('loading');
-  }
-}
+      try {
+        const res = await fetch('/api/comando', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ comando, tipoManual, plataformaManual })
+        });
 
         const data = await res.json();
 
         if (!res.ok) {
           showStatus('error', '✗ erro', data.error || 'Erro ao enviar comando.');
         } else {
-          showStatus('success', '✓ enviado', 'Comando recebido! Aguardando o Make processar...', true);
-          addToHistory(comando, data.id);
+          showStatus('success', '✓ enviado', data.message || 'Comando enviado com sucesso!', false);
+          // usa o id do primeiro item criado para histórico
+          const primeiroId = data.itens && data.itens[0] ? data.itens[0].id : null;
+          addToHistory(comando, primeiroId);
           input.value = '';
         }
       } catch (e) {
@@ -590,7 +558,6 @@
       }
     }
 
-    // Enviar com Ctrl+Enter
     document.getElementById('comandoInput').addEventListener('keydown', e => {
       if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
         e.preventDefault();
