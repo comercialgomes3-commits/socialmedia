@@ -187,8 +187,11 @@ async function criarNoCronograma(item) {
           select: { name: itemFinal.tipo }
         },
         Plataforma: {
-          multi_select: itemFinal.plataforma.map((p) => ({ name: p }))
-        }
+  multi_select: itemFinal.plataforma.map((p) => ({ name: p }))
+},
+Andamento: {
+  select: { name: 'A iniciar' }
+}
       }
     })
   });
