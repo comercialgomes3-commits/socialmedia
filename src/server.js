@@ -501,8 +501,14 @@ Responda SOMENTE JSON válido, sem markdown, neste formato:
     throw new Error('O Gemini não retornou texto.');
   }
 
-  const parsed = extrairJson(texto);
+  let parsed;
 
+try {
+  parsed = JSON.parse(texto);
+} catch (err) {
+  console.error('JSON inválido retornado pelo Gemini:', texto);
+  throw new Error('A IA retornou um JSON inválido. Tente enviar um print mais nítido ou recortado apenas na lista.');
+}
   if (!Array.isArray(parsed.itens)) {
     throw new Error('A IA visual não retornou a lista "itens".');
   }
