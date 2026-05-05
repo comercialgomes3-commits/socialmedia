@@ -454,7 +454,33 @@ Responda SOMENTE JSON válido, sem markdown, neste formato:
         generationConfig: {
   temperature: 0,
   maxOutputTokens: 2000,
-  responseMimeType: 'application/json'
+  responseMimeType: 'application/json',
+  responseSchema: {
+    type: 'OBJECT',
+    properties: {
+      resumo: {
+        type: 'STRING'
+      },
+      itens: {
+        type: 'ARRAY',
+        items: {
+          type: 'OBJECT',
+          properties: {
+            tema: { type: 'STRING' },
+            tipo: { type: 'STRING' },
+            plataforma: {
+              type: 'ARRAY',
+              items: { type: 'STRING' }
+            },
+            data: { type: 'STRING' },
+            dia: { type: 'STRING' }
+          },
+          required: ['tema', 'tipo', 'plataforma', 'data', 'dia']
+        }
+      }
+    },
+    required: ['resumo', 'itens']
+  }
 }
       })
     }
