@@ -733,70 +733,62 @@ textarea::placeholder { color: #a8b3c7; }
   addToHistory(comando);
 }
 
-   async function enviarComando() {
+  async function enviarComando() {
   const input = document.getElementById('comandoInput');
   const btn = document.getElementById('enviarBtn');
+  const comando = input.value.trim();
 
-  const comando = input.value.trim(); // 👈 TEM QUE VIR PRIMEIRO
+  if (!comando) {
+    showStatus('error', 'Erro', 'Digite um comando antes de enviar.');
+    return;
+  }
 
-  // 👇 DEPOIS vem a verificação
- const cmd = comando.toLowerCase();
+  const cmd = comando.toLowerCase();
 
-if (
-  cmd.includes('remover') ||
-  cmd.includes('remova') ||
-  cmd.includes('apagar') ||
-  cmd.includes('apague') ||
-  cmd.includes('deletar') ||
-  cmd.includes('excluir')
-) {
-  await prepararRemocao(comando);
-  input.value = '';
-  return;
-}
+  if (
+    cmd.includes('remover') ||
+    cmd.includes('remova') ||
+    cmd.includes('apagar') ||
+    cmd.includes('apague') ||
+    cmd.includes('deletar') ||
+    cmd.includes('excluir')
+  ) {
     await prepararRemocao(comando);
     input.value = '';
     return;
   }
 
+  const tipoManual = Array.from(document.querySelectorAll('input[name="tipo"]:checked')).map(i => i.value);
+  const plataformaManual = Array.from(document.querySelectorAll('input[name="plataforma"]:checked')).map(i => i.value);
 
-      if (!comando) {
-        showStatus('error', '✗ vazio', 'Digite um comando antes de enviar.');
-        return;
-      }
+  btn.disabled = true;
+  btn.classList.add('loading');
+  document.getElementById('statusBox').className = 'status-box';
 
-      const tipoManual = Array.from(document.querySelectorAll('input[name="tipo"]:checked')).map(i => i.value);
-      const plataformaManual = Array.from(document.querySelectorAll('input[name="plataforma"]:checked')).map(i => i.value);
+  try {
+    const res = await fetch('/api/comando', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ comando, tipoManual, plataformaManual })
+    });
 
-      btn.disabled = true;
-      btn.classList.add('loading');
-      document.getElementById('statusBox').className = 'status-box';
+    const data = await res.json();
 
-      try {
-        const res = await fetch('/api/comando', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ comando, tipoManual, plataformaManual })
-        });
-
-        const data = await res.json();
-
-        if (!res.ok) {
-          showStatus('error', '✗ erro', data.error || 'Erro ao enviar comando.');
-        } else {
-          showStatus('success', '✓ enviado', data.message || 'Comando enviado com sucesso!', false);
-          // usa o id do primeiro item criado para histórico
-          const primeiroId = data.itens && data.itens[0] ? data.itens[0].id : null;
-          addToHistory(comando, primeiroId);
-          input.value = '';
-        }
-      } catch (e) {
-        showStatus('error', '✗ erro de rede', 'Não foi possível conectar ao servidor.');
-      } finally {
-        btn.disabled = false;
-        btn.classList.remove('loading');
-      }
+    if (!res.ok || !data.success) {
+      showStatus('error', 'Erro', data.error || 'Erro ao enviar comando.');
+    } else {
+      showStatus('success', 'Comando enviado', data.message || 'Comando enviado com sucesso!');
+      const primeiroId = data.itens && data.itens[0] ? data.itens[0].id : null;
+      addToHistory(comando, primeiroId);
+      input.value = '';
     }
+  } catch (e) {
+    showStatus('error', 'Erro de rede', 'Não foi possível conectar ao servidor.');
+  } finally {
+    btn.disabled = false;
+    btn.classList.remove('loading');
+  }
+}
 
     document.getElementById('comandoInput').addEventListener('keydown', e => {
       if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
