@@ -320,7 +320,28 @@ Responda SOMENTE JSON válido, sem markdown, neste formato:
     throw new Error('A Hugging Face não retornou texto.');
   }
 
-  const parsed = extrairJson(texto);
+  let parsed;
+
+try {
+  parsed = JSON.parse(texto);
+} catch {
+  parsed = extrairJson(texto);
+}
+
+if (Array.isArray(parsed.videos) && !Array.isArray(parsed.itens)) {
+  parsed.itens = parsed.videos.map((v) => ({
+    tema: v.tema || v.nome || 'Conteúdo sem título',
+    tipo: v.tipo || 'Reels',
+    plataforma: v.plataforma,
+    data: v.data,
+    dia: v.dia
+  }));
+}
+
+if (!Array.isArray(parsed.itens)) {
+  console.error('Resposta Gemini sem itens:', texto);
+  throw new Error('A IA visual não retornou a lista "itens".');
+}
 
   if (!Array.isArray(parsed.itens)) {
     throw new Error('A IA não retornou a lista "itens".');
