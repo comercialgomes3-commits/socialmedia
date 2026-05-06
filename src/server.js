@@ -425,6 +425,7 @@ Regras:
 - Se o usuário pedir quantidade, crie vários itens dentro de "itens".
 - Se pedir "essa semana", use datas futuras desta semana.
 - Nunca crie dois Reels no mesmo dia.
+- Pode ter Reels + Status no mesmo dia.
 - Status vai para ["WhatsApp"].
 - Reels, Post e Carrossel vão para ["Instagram"].
 - Reels preferenciais: Segunda, Terça, Quinta e Sexta.
