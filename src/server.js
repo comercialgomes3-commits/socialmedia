@@ -94,6 +94,7 @@ async function deletarItemNotion(pageId) {
 
   return data;
 }
+
 async function buscarCronogramaExistente(dataInicio, dataFim) {
   const notionToken = process.env.NOTION_TOKEN;
   const databaseId = process.env.NOTION_DATABASE_ID;
@@ -188,11 +189,11 @@ async function criarNoCronograma(item) {
           select: { name: itemFinal.tipo }
         },
         Plataforma: {
-  multi_select: itemFinal.plataforma.map((p) => ({ name: p }))
-},
-Andamento: {
-  select: { name: 'A iniciar' }
-}
+          multi_select: itemFinal.plataforma.map((p) => ({ name: p }))
+        },
+        Andamento: {
+          select: { name: 'A iniciar' }
+        }
       }
     })
   });
@@ -224,6 +225,7 @@ function formatarDataBrasil(data) {
     timeZone: 'America/Sao_Paulo'
   });
 }
+
 function proximaDataPorDia(nomeDia) {
   const mapa = {
     domingo: 0,
@@ -256,8 +258,7 @@ function proximaDataPorDia(nomeDia) {
   return formatarDataBrasil(novaData);
 }
 
-function calcularJanelaDatas(comando) {
-  function resolverDatasNoComando(comando) {
+function resolverDatasNoComando(comando) {
   const diasMap = {
     'domingo': 0, 'segunda': 1, 'terça': 2, 'terca': 2,
     'quarta': 3, 'quinta': 4, 'sexta': 5, 'sábado': 6, 'sabado': 6
@@ -302,6 +303,8 @@ function calcularJanelaDatas(comando) {
 
   return comandoResolvido;
 }
+
+function calcularJanelaDatas(comando) {
   const hoje = hojeBrasil();
   hoje.setHours(0, 0, 0, 0);
 
@@ -320,8 +323,8 @@ function calcularJanelaDatas(comando) {
     dataFim = new Date(dataInicio);
     dataFim.setDate(dataInicio.getDate() + 6);
   } else if (cmd.includes('essa semana') || cmd.includes('esta semana')) {
-   dataInicio = new Date(hoje);
-dataInicio.setDate(hoje.getDate() + 1);
+    dataInicio = new Date(hoje);
+    dataInicio.setDate(hoje.getDate() + 1);
 
     dataFim = new Date(hoje);
     dataFim.setDate(hoje.getDate() + (6 - diaSemana));
@@ -339,9 +342,11 @@ dataInicio.setDate(hoje.getDate() + 1);
     fim: formatarDataBrasil(dataFim)
   };
 }
+
 // ─────────────────────────────────────────────
 // IA por texto — Hugging Face
 // ─────────────────────────────────────────────
+
 function detectarTarefaRepetida(comando) {
   const cmd = String(comando || '').toLowerCase();
 
@@ -391,6 +396,7 @@ function detectarTarefaRepetida(comando) {
     itens
   };
 }
+
 async function interpretarComando(comando, conteudosExistentes = []) {
   const HF_TOKEN = process.env.HF_TOKEN || process.env.HF_API_KEY;
 
@@ -406,11 +412,9 @@ async function interpretarComando(comando, conteudosExistentes = []) {
     ? JSON.stringify(conteudosExistentes, null, 2)
     : 'Nenhum conteúdo encontrado no período.';
 
-  const prompt = `
-const comandoResolvido = resolverDatasNoComando(comando);
+  const comandoResolvido = resolverDatasNoComando(comando);
 
-  const prompt = `
-Você é Gabi, uma IA especialista em planejamento de redes sociais para a Comercial Gomes.
+  const prompt = `Você é Gabi, uma IA especialista em planejamento de redes sociais para a Comercial Gomes.
 
 Data atual no Brasil: ${hoje}
 
@@ -449,8 +453,7 @@ Responda SOMENTE JSON válido, sem markdown, neste formato:
       "dia": "Segunda"
     }
   ]
-}
-`;
+}`;
 
   const response = await fetch('https://router.huggingface.co/v1/chat/completions', {
     method: 'POST',
@@ -489,28 +492,24 @@ Responda SOMENTE JSON válido, sem markdown, neste formato:
 
   let parsed;
 
-try {
-  parsed = JSON.parse(texto);
-} catch {
-  parsed = extrairJson(texto);
-}
+  try {
+    parsed = JSON.parse(texto);
+  } catch {
+    parsed = extrairJson(texto);
+  }
 
-if (Array.isArray(parsed.videos) && !Array.isArray(parsed.itens)) {
-  parsed.itens = parsed.videos.map((v) => ({
-    tema: v.tema || v.nome || 'Conteúdo sem título',
-    tipo: v.tipo || 'Reels',
-    plataforma: v.plataforma,
-    data: v.data,
-    dia: v.dia
-  }));
-}
-
-if (!Array.isArray(parsed.itens)) {
-  console.error('Resposta Gemini sem itens:', texto);
-  throw new Error('A IA visual não retornou a lista "itens".');
-}
+  if (Array.isArray(parsed.videos) && !Array.isArray(parsed.itens)) {
+    parsed.itens = parsed.videos.map((v) => ({
+      tema: v.tema || v.nome || 'Conteúdo sem título',
+      tipo: v.tipo || 'Reels',
+      plataforma: v.plataforma,
+      data: v.data,
+      dia: v.dia
+    }));
+  }
 
   if (!Array.isArray(parsed.itens)) {
+    console.error('Resposta sem itens:', texto);
     throw new Error('A IA não retornou a lista "itens".');
   }
 
@@ -554,8 +553,7 @@ async function interpretarPrintComGemini(imagemBase64, instrucoes = '') {
 
   const { mimeType, base64 } = limparImagemBase64(imagemBase64);
 
-  const prompt = `
-Você é uma IA que lê prints/screenshot de listas de conteúdos de social media.
+  const prompt = `Você é uma IA que lê prints/screenshot de listas de conteúdos de social media.
 
 Data atual no Brasil: ${hoje}
 
@@ -574,7 +572,6 @@ Tarefa:
 - O campo tema deve ser curto, limpo e comercial.
 - O campo data deve ser YYYY-MM-DD.
 - O campo dia deve ser em português.
-  
 
 Instruções adicionais do usuário:
 ${instrucoes || 'Nenhuma.'}
@@ -592,8 +589,7 @@ Responda SOMENTE JSON válido, sem markdown, neste formato:
       "dia": "Segunda"
     }
   ]
-}
-`;
+}`;
 
   const model = process.env.GEMINI_MODEL || 'gemini-2.0-flash';
 
@@ -620,36 +616,36 @@ Responda SOMENTE JSON válido, sem markdown, neste formato:
           }
         ],
         generationConfig: {
-  temperature: 0,
-  maxOutputTokens: 2000,
-  responseMimeType: 'application/json',
-  responseSchema: {
-    type: 'OBJECT',
-    properties: {
-      resumo: {
-        type: 'STRING'
-      },
-      itens: {
-        type: 'ARRAY',
-        items: {
-          type: 'OBJECT',
-          properties: {
-            tema: { type: 'STRING' },
-            tipo: { type: 'STRING' },
-            plataforma: {
-              type: 'ARRAY',
-              items: { type: 'STRING' }
+          temperature: 0,
+          maxOutputTokens: 2000,
+          responseMimeType: 'application/json',
+          responseSchema: {
+            type: 'OBJECT',
+            properties: {
+              resumo: {
+                type: 'STRING'
+              },
+              itens: {
+                type: 'ARRAY',
+                items: {
+                  type: 'OBJECT',
+                  properties: {
+                    tema: { type: 'STRING' },
+                    tipo: { type: 'STRING' },
+                    plataforma: {
+                      type: 'ARRAY',
+                      items: { type: 'STRING' }
+                    },
+                    data: { type: 'STRING' },
+                    dia: { type: 'STRING' }
+                  },
+                  required: ['tema', 'tipo', 'plataforma', 'data', 'dia']
+                }
+              }
             },
-            data: { type: 'STRING' },
-            dia: { type: 'STRING' }
-          },
-          required: ['tema', 'tipo', 'plataforma', 'data', 'dia']
+            required: ['resumo', 'itens']
+          }
         }
-      }
-    },
-    required: ['resumo', 'itens']
-  }
-}
       })
     }
   );
@@ -671,12 +667,13 @@ Responda SOMENTE JSON válido, sem markdown, neste formato:
 
   let parsed;
 
-try {
-  parsed = JSON.parse(texto);
-} catch (err) {
-  console.error('JSON inválido retornado pelo Gemini:', texto);
-  throw new Error('A IA retornou um JSON inválido. Tente enviar um print mais nítido ou recortado apenas na lista.');
-}
+  try {
+    parsed = JSON.parse(texto);
+  } catch (err) {
+    console.error('JSON inválido retornado pelo Gemini:', texto);
+    throw new Error('A IA retornou um JSON inválido. Tente enviar um print mais nítido ou recortado apenas na lista.');
+  }
+
   if (!Array.isArray(parsed.itens)) {
     throw new Error('A IA visual não retornou a lista "itens".');
   }
@@ -709,8 +706,8 @@ app.post('/api/comando', async (req, res) => {
     const janela = calcularJanelaDatas(comando.trim());
     const existentes = await buscarCronogramaExistente(janela.inicio, janela.fim);
 
- const planoManual = detectarTarefaRepetida(comando.trim());
-const plano = planoManual || await interpretarComando(comando.trim(), existentes);
+    const planoManual = detectarTarefaRepetida(comando.trim());
+    const plano = planoManual || await interpretarComando(comando.trim(), existentes);
 
     let itens = plano.itens.map((item) => ({
       ...item,
@@ -956,6 +953,7 @@ app.get('/api/cronograma', async (req, res) => {
     });
   }
 });
+
 app.post('/api/preparar-remocao', async (req, res) => {
   const { comando } = req.body;
 
@@ -1022,6 +1020,7 @@ app.post('/api/confirmar-remocao', async (req, res) => {
     return res.status(500).json({ error: err.message });
   }
 });
+
 app.get('/api/status/:id', async (req, res) => {
   res.json({
     status: 'Concluído',
