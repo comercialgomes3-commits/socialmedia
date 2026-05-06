@@ -63,7 +63,7 @@ function normalizarItem(item) {
     tipo,
     plataforma: normalizarPlataforma(item.plataforma, tipo),
     data: item.data,
-    dia: item.dia || (item.data ? getDiaSemana(item.data) : '')
+    dia: item.data ? getDiaSemana(item.data) : ''
   };
 }
 
@@ -113,8 +113,8 @@ async function buscarCronogramaExistente(dataInicio, dataFim) {
     body: JSON.stringify({
       filter: {
         and: [
-          { property: 'Date', date: { on_or_after: dataInicio } },
-          { property: 'Date', date: { on_or_before: dataFim } }
+          { property: 'Prazo', date: { on_or_after: dataInicio } },
+          { property: 'Prazo', date: { on_or_before: dataFim } }
         ]
       },
       page_size: 100
@@ -130,13 +130,14 @@ async function buscarCronogramaExistente(dataInicio, dataFim) {
 
   return (data.results || []).map((page) => {
     const props = page.properties || {};
+    const prazo = props.Prazo?.date?.start || '';
 
     return {
       id: page.id,
       tema: props.Tema?.title?.[0]?.plain_text || '',
-      data: props.Date?.date?.start || '',
-      dia: props.Dia?.rich_text?.[0]?.plain_text || '',
-      tipo: props.Select?.select?.name || '',
+      data: prazo,
+      dia: prazo ? getDiaSemana(prazo) : '',
+      tipo: (props['Multi-select']?.multi_select || []).map((p) => p.name)[0] || '',
       plataforma: (props.Plataforma?.multi_select || []).map((p) => p.name)
     };
   });
@@ -179,20 +180,17 @@ async function criarNoCronograma(item) {
         Tema: {
           title: [{ text: { content: itemFinal.tema } }]
         },
-        Date: {
+        Prazo: {
           date: { start: itemFinal.data }
         },
-        Dia: {
-          rich_text: [{ text: { content: itemFinal.dia || '' } }]
-        },
-        Select: {
-          select: { name: itemFinal.tipo }
+        Status: {
+          status: { name: 'A iniciar' }
         },
         Plataforma: {
           multi_select: itemFinal.plataforma.map((p) => ({ name: p }))
         },
-        Andamento: {
-          select: { name: 'A iniciar' }
+        'Multi-select': {
+          multi_select: [{ name: itemFinal.tipo }]
         }
       }
     })
@@ -523,12 +521,13 @@ Responda SOMENTE JSON válido, sem markdown, neste formato:
     throw new Error('A IA não retornou a lista "itens".');
   }
 
-parsed.itens = parsed.itens
-  .map(normalizarItem)
-  .map((item) => ({
-    ...item,
-    dia: item.data ? getDiaSemana(item.data) : item.dia
-  }));
+  parsed.itens = parsed.itens
+    .map(normalizarItem)
+    .map((item) => ({
+      ...item,
+      dia: item.data ? getDiaSemana(item.data) : item.dia
+    }));
+
   return parsed;
 }
 
