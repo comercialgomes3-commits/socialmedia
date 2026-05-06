@@ -137,7 +137,7 @@ async function buscarCronogramaExistente(dataInicio, dataFim) {
       tema: props.Tema?.title?.[0]?.plain_text || '',
       data: prazo,
       dia: prazo ? getDiaSemana(prazo) : '',
-      tipo: (props['Multi-select']?.multi_select || []).map((p) => p.name)[0] || '',
+      tipo: (props.Select?.multi_select || []).map((p) => p.name)[0] || '',
       plataforma: (props.Plataforma?.multi_select || []).map((p) => p.name)
     };
   });
@@ -189,7 +189,7 @@ async function criarNoCronograma(item) {
         Plataforma: {
           multi_select: itemFinal.plataforma.map((p) => ({ name: p }))
         },
-        'Multi-select': {
+        Select: {
           multi_select: [{ name: itemFinal.tipo }]
         }
       }
@@ -222,38 +222,6 @@ function formatarDataBrasil(data) {
   return data.toLocaleDateString('en-CA', {
     timeZone: 'America/Sao_Paulo'
   });
-}
-
-function proximaDataPorDia(nomeDia) {
-  const mapa = {
-    domingo: 0,
-    segunda: 1,
-    terça: 2,
-    terca: 2,
-    quarta: 3,
-    quinta: 4,
-    sexta: 5,
-    sábado: 6,
-    sabado: 6
-  };
-
-  const alvo = mapa[String(nomeDia || '').toLowerCase()];
-  if (alvo === undefined) return null;
-
-  const hoje = hojeBrasil();
-  hoje.setHours(0, 0, 0, 0);
-
-  const atual = hoje.getDay();
-  let diasParaAdicionar = (alvo - atual + 7) % 7;
-
-  if (diasParaAdicionar === 0) {
-    diasParaAdicionar = 7;
-  }
-
-  const novaData = new Date(hoje);
-  novaData.setDate(hoje.getDate() + diasParaAdicionar);
-
-  return formatarDataBrasil(novaData);
 }
 
 function resolverDatasNoComando(comando) {
@@ -433,7 +401,7 @@ Comando do usuário:
 "${comandoResolvido}"
 
 Regras:
-- As datas já foram resolvidas no comando (formato YYYY-MM-DD entre parênteses). USE ESSAS DATAS EXATAS.
+- As datas já foram resolvidas no comando. Se houver uma data entre parênteses, USE ESSA DATA EXATA.
 - Se o usuário pedir quantidade, crie vários itens dentro de "itens".
 - Se pedir "essa semana", use datas futuras desta semana.
 - Nunca crie dois Reels no mesmo dia.
@@ -527,6 +495,14 @@ Responda SOMENTE JSON válido, sem markdown, neste formato:
       ...item,
       dia: item.data ? getDiaSemana(item.data) : item.dia
     }));
+
+  const datasResolvidas = [...comandoResolvido.matchAll(/\((\d{4}-\d{2}-\d{2})\)/g)]
+    .map((m) => m[1]);
+
+  if (datasResolvidas.length === 1 && parsed.itens.length === 1) {
+    parsed.itens[0].data = datasResolvidas[0];
+    parsed.itens[0].dia = getDiaSemana(datasResolvidas[0]);
+  }
 
   return parsed;
 }
@@ -707,7 +683,6 @@ app.get('/health', (req, res) => {
   });
 });
 
-// Texto normal
 app.post('/api/comando', async (req, res) => {
   const { comando, tipoManual, plataformaManual } = req.body;
 
@@ -775,7 +750,6 @@ app.post('/api/comando', async (req, res) => {
   }
 });
 
-// Print/screenshot: interpreta imagem e já agenda
 app.post('/api/interpretar-print', async (req, res) => {
   const {
     imagemBase64,
@@ -874,7 +848,6 @@ app.post('/api/interpretar-print', async (req, res) => {
   }
 });
 
-// Agendamento direto: recebe JSON pronto e cria no Notion
 app.post('/api/agendar-direto', async (req, res) => {
   const itensRecebidos = req.body._itens_diretos || req.body.itens;
 
@@ -938,7 +911,6 @@ app.post('/api/agendar-direto', async (req, res) => {
   }
 });
 
-// Consulta cronograma existente
 app.get('/api/cronograma', async (req, res) => {
   const { inicio, fim } = req.query;
 
