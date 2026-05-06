@@ -260,8 +260,15 @@ function proximaDataPorDia(nomeDia) {
 
 function resolverDatasNoComando(comando) {
   const diasMap = {
-    'domingo': 0, 'segunda': 1, 'terça': 2, 'terca': 2,
-    'quarta': 3, 'quinta': 4, 'sexta': 5, 'sábado': 6, 'sabado': 6
+    domingo: 0,
+    segunda: 1,
+    terça: 2,
+    terca: 2,
+    quarta: 3,
+    quinta: 4,
+    sexta: 5,
+    sábado: 6,
+    sabado: 6
   };
 
   const hoje = hojeBrasil();
@@ -270,24 +277,22 @@ function resolverDatasNoComando(comando) {
 
   let comandoResolvido = comando;
 
-  const regexProxima = /(?:próxim[ao]\s+|proxim[ao]\s+)?(segunda|terça|terca|quarta|quinta|sexta|sábado|sabado|domingo)(?:\s+que\s+vem)?/gi;
+  const regexDia =
+    /(?:próxim[ao]\s+|proxim[ao]\s+)?(segunda|terça|terca|quarta|quinta|sexta|sábado|sabado|domingo)(?:\s+que\s+vem)?/gi;
 
-  comandoResolvido = comandoResolvido.replace(regexProxima, (match, nomeDia) => {
+  comandoResolvido = comandoResolvido.replace(regexDia, (match, nomeDia) => {
     const alvo = diasMap[nomeDia.toLowerCase()];
     if (alvo === undefined) return match;
-
-    const forcaProximaSemana = /que\s*vem|próxim[ao]|proxim[ao]/i.test(match);
 
     let diasParaAdicionar = (alvo - diaAtual + 7) % 7;
 
     if (diasParaAdicionar === 0) {
       diasParaAdicionar = 7;
-    } else if (forcaProximaSemana && diasParaAdicionar < 7) {
-      diasParaAdicionar += 7;
     }
 
     const dataAlvo = new Date(hoje);
     dataAlvo.setDate(hoje.getDate() + diasParaAdicionar);
+
     const dataStr = formatarDataBrasil(dataAlvo);
     const diaNome = getDiaSemana(dataStr);
 
@@ -297,8 +302,13 @@ function resolverDatasNoComando(comando) {
   if (/amanhã|amanha/i.test(comandoResolvido)) {
     const amanha = new Date(hoje);
     amanha.setDate(hoje.getDate() + 1);
+
     const dataStr = formatarDataBrasil(amanha);
-    comandoResolvido = comandoResolvido.replace(/amanhã|amanha/gi, `amanhã (${dataStr})`);
+
+    comandoResolvido = comandoResolvido.replace(
+      /amanhã|amanha/gi,
+      `amanhã (${dataStr})`
+    );
   }
 
   return comandoResolvido;
@@ -513,8 +523,12 @@ Responda SOMENTE JSON válido, sem markdown, neste formato:
     throw new Error('A IA não retornou a lista "itens".');
   }
 
-  parsed.itens = parsed.itens.map(normalizarItem);
-
+parsed.itens = parsed.itens
+  .map(normalizarItem)
+  .map((item) => ({
+    ...item,
+    dia: item.data ? getDiaSemana(item.data) : item.dia
+  }));
   return parsed;
 }
 
