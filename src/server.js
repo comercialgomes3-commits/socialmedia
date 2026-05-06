@@ -39,8 +39,9 @@ function normalizarPlataforma(plataforma, tipo) {
 
 function getDiaSemana(dataStr) {
   const nomes = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
-  const d = new Date(dataStr + 'T00:00:00');
-  return nomes[d.getDay()];
+  const [ano, mes, dia] = dataStr.split('-').map(Number);
+  const d = new Date(Date.UTC(ano, mes - 1, dia));
+  return nomes[d.getUTCDay()];
 }
 
 function normalizarTipo(tipo) {
@@ -256,6 +257,51 @@ function proximaDataPorDia(nomeDia) {
 }
 
 function calcularJanelaDatas(comando) {
+  function resolverDatasNoComando(comando) {
+  const diasMap = {
+    'domingo': 0, 'segunda': 1, 'terça': 2, 'terca': 2,
+    'quarta': 3, 'quinta': 4, 'sexta': 5, 'sábado': 6, 'sabado': 6
+  };
+
+  const hoje = hojeBrasil();
+  hoje.setHours(0, 0, 0, 0);
+  const diaAtual = hoje.getDay();
+
+  let comandoResolvido = comando;
+
+  const regexProxima = /(?:próxim[ao]\s+|proxim[ao]\s+)?(segunda|terça|terca|quarta|quinta|sexta|sábado|sabado|domingo)(?:\s+que\s+vem)?/gi;
+
+  comandoResolvido = comandoResolvido.replace(regexProxima, (match, nomeDia) => {
+    const alvo = diasMap[nomeDia.toLowerCase()];
+    if (alvo === undefined) return match;
+
+    const forcaProximaSemana = /que\s*vem|próxim[ao]|proxim[ao]/i.test(match);
+
+    let diasParaAdicionar = (alvo - diaAtual + 7) % 7;
+
+    if (diasParaAdicionar === 0) {
+      diasParaAdicionar = 7;
+    } else if (forcaProximaSemana && diasParaAdicionar < 7) {
+      diasParaAdicionar += 7;
+    }
+
+    const dataAlvo = new Date(hoje);
+    dataAlvo.setDate(hoje.getDate() + diasParaAdicionar);
+    const dataStr = formatarDataBrasil(dataAlvo);
+    const diaNome = getDiaSemana(dataStr);
+
+    return `${diaNome} (${dataStr})`;
+  });
+
+  if (/amanhã|amanha/i.test(comandoResolvido)) {
+    const amanha = new Date(hoje);
+    amanha.setDate(hoje.getDate() + 1);
+    const dataStr = formatarDataBrasil(amanha);
+    comandoResolvido = comandoResolvido.replace(/amanhã|amanha/gi, `amanhã (${dataStr})`);
+  }
+
+  return comandoResolvido;
+}
   const hoje = hojeBrasil();
   hoje.setHours(0, 0, 0, 0);
 
@@ -361,6 +407,9 @@ async function interpretarComando(comando, conteudosExistentes = []) {
     : 'Nenhum conteúdo encontrado no período.';
 
   const prompt = `
+const comandoResolvido = resolverDatasNoComando(comando);
+
+  const prompt = `
 Você é Gabi, uma IA especialista em planejamento de redes sociais para a Comercial Gomes.
 
 Data atual no Brasil: ${hoje}
@@ -369,15 +418,13 @@ Conteúdos já existentes no cronograma, não duplique data + tipo:
 ${existentesStr}
 
 Comando do usuário:
-"${comando}"
+"${comandoResolvido}"
 
 Regras:
+- As datas já foram resolvidas no comando (formato YYYY-MM-DD entre parênteses). USE ESSAS DATAS EXATAS.
 - Se o usuário pedir quantidade, crie vários itens dentro de "itens".
-- Se pedir "semana que vem", use a próxima semana.
 - Se pedir "essa semana", use datas futuras desta semana.
-- Se pedir "amanhã", use amanhã.
 - Nunca crie dois Reels no mesmo dia.
-- Pode ter Reels + Status no mesmo dia.
 - Status vai para ["WhatsApp"].
 - Reels, Post e Carrossel vão para ["Instagram"].
 - Reels preferenciais: Segunda, Terça, Quinta e Sexta.
